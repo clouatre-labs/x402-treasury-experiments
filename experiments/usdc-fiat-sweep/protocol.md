@@ -23,7 +23,7 @@ Eight conversions total, executed in one execution pass. No tranche is re-run be
 
 ### Funding and execution order
 
-The tranches are pre-funded by a single inbound USDC transfer into the receiver wallet before the first conversion, then executed in ascending amount order: $1, $1, $5, $5, $20, $20, then the two full-balance replicates. The full-balance tranche is defined as the entire remaining receiver balance at that point in the sequence, so both full-balance replicates are executable without any replenishment procedure between them. With an inbound transfer of approximately $60, the six fixed-amount tranches consume $52 and each full-balance replicate sweeps the remaining balance of approximately $4.
+The tranches are pre-funded by a single inbound USDC transfer into the receiver wallet before the first conversion, then executed in ascending amount order: $1, $1, $5, $5, $20, $20, then the two full-balance replicates. Every tranche is funded solely by the single pre-registered inbound transfer; no replenishment exists or is needed; the full-balance tranche consumes the residual at its position in the ascending sequence. The full-balance tranche is defined as the entire remaining receiver balance at that point in the sequence, so both full-balance replicates are executable without any replenishment procedure between them. With an inbound transfer of approximately $60, the six fixed-amount tranches consume $52 and each full-balance replicate sweeps the remaining balance of approximately $4.
 
 ### Endpoints (per tranche)
 

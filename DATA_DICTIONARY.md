@@ -70,9 +70,11 @@ Per-tranche JSON records stored under `experiments/usdc-fiat-sweep/sessions/`. R
 | `timestamp_coinbase_credit` | string \| null | yes | Timestamp Coinbase credited the USDC; null only if the hop failed or was unobserved, which requires a populated `notes` entry explaining which hop failed |
 | `timestamp_fiat_spendable` | string \| null | yes | Timestamp the fiat became spendable; null only if the hop failed or was unobserved, which requires a populated `notes` entry explaining which hop failed |
 | `fiat_received` | number | no | Fiat amount received after fees |
+| `network_fee_usd` | number \| null | yes | On-chain network (gas) fee for the inbound transfer and deposit legs, in USD; null only when the network fee was zero, in which case a populated `notes` entry must state this |
+| `fixed_fee_usd` | number | no | Coinbase quoted fixed conversion fee for the tranche, in USD; 0 is allowed |
 | `quoted_fee_usd` | number | no | Fee quoted by Coinbase at conversion, verbatim from the source |
-| `realized_fee_pct` | number | no | Realized percentage fee of the conversion |
-| `spread_vs_mid_pct` | number | no | Spread vs USDC mid at execution time, in percent |
+| `realized_fee_pct` | number | no | Derived quantity, not recorded directly: computed from `fixed_fee_usd`, `network_fee_usd`, and `amount_usdc` |
+| `spread_vs_mid_pct` | number | no | Derived quantity, not recorded directly: computed from the fiat received and the observed USDC mid at execution time |
 | `manual_steps` | integer | no | Count of manual operator steps for the tranche |
 | `notes` | string \| null | yes | Optional note (e.g. fallback used, missing-value explanation) |
 
