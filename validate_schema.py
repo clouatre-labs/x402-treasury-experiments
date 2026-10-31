@@ -8,10 +8,11 @@ that the `experiment` field matches the parent directory slug. Certain
 fields are nullable (allowed to be null) while others must have values.
 
 Usage:
-    uv run python validate_schema.py [--self-test] [FILE ...]
+    uv run python validate_schema.py [--self-test] [--sweep] [FILE ...]
 
 With no FILE arguments, discovers and validates all
-experiments/*/analysis.json files under the repository root.
+experiments/*/analysis.json files under the repository root. With --sweep,
+each FILE is validated as a usdc-fiat-sweep-api sweep run record.
 
 Exits with 0 if all files pass validation, 1 if any validation fails.
 
@@ -262,7 +263,9 @@ def validate_record(data, expected_slug=None):
     return errors
 
 
-def validate_path(path):
+def validate_path(path, sweep_record=False):
+    if sweep_record:
+        return validate_sweep_path(path)
     try:
         with open(path) as f:
             data = _load_json_strict(f.read())
@@ -270,6 +273,172 @@ def validate_path(path):
         print(f"Failed to load {path}: {exc}")
         return False
     errors = validate_record(data, expected_slug=pathlib.Path(path).parent.name)
+    if errors:
+        for error in errors:
+            print(f"{path}: {error}")
+        return False
+    return True
+
+
+# Run-record fields for usdc-fiat-sweep-api sweep records. Nullable fields
+# carry explicit null-requires-notes rules enforced by validate_sweep_record.
+SWEEP_NULLABLE_FIELDS = [
+    "amount_usdc",
+    "tx_hash_in",
+    "deposit_address",
+    "convert_quote_id",
+    "usdc_mid",
+    "mid_observed_at",
+    "timestamp_sent",
+    "timestamp_coinbase_credit",
+    "timestamp_fiat_spendable",
+    "fiat_received",
+    "funding_tx_hash",
+    "network_fee_usd",
+    "realized_fee_pct",
+    "spread_vs_mid_pct",
+    "notes",
+]
+
+SWEEP_REQUIRED_NON_NULL_FIELDS = [
+    "tranche_id",
+    "replicate",
+    "executed",
+    "synthetic",
+    "fixed_fee_usd",
+    "quoted_fee_usd",
+]
+
+SWEEP_TIMESTAMP_FIELDS = [
+    "mid_observed_at",
+    "timestamp_sent",
+    "timestamp_coinbase_credit",
+    "timestamp_fiat_spendable",
+]
+
+# Fields that must be null exactly when the record is not_executed.
+SWEEP_NOT_EXECUTED_NULLABLE = [
+    "amount_usdc",
+    "tx_hash_in",
+    "deposit_address",
+    "convert_quote_id",
+    "usdc_mid",
+    "mid_observed_at",
+    "fiat_received",
+    "realized_fee_pct",
+    "spread_vs_mid_pct",
+]
+
+
+def _sweep_has_notes(data):
+    return isinstance(data.get("notes"), str) and data["notes"].strip() != ""
+
+
+def validate_sweep_record(data):
+    """Validate one usdc-fiat-sweep-api run record against DATA_DICTIONARY.md."""
+    if not isinstance(data, dict):
+        return [f"top-level JSON value is not an object: {type(data).__name__}"]
+    errors = []
+    for field in SWEEP_REQUIRED_NON_NULL_FIELDS:
+        if field not in data:
+            errors.append(f"missing field {field}")
+        elif data[field] is None:
+            errors.append(f"field {field} is null")
+    for field in SWEEP_NULLABLE_FIELDS:
+        if field not in data:
+            errors.append(f"missing field {field}")
+    if errors:
+        return errors
+    for field in ("tranche_id", "tx_hash_in", "deposit_address", "convert_quote_id", "notes", "funding_tx_hash"):
+        value = data.get(field)
+        if value is not None and not isinstance(value, str):
+            errors.append(f"field {field} is not a string or null")
+    for field in SWEEP_TIMESTAMP_FIELDS:
+        value = data.get(field)
+        if value is not None and (not isinstance(value, str) or not _parse_timestamp(value)):
+            errors.append(f"field {field} is not an ISO 8601 timestamp")
+    for field in ("replicate",):
+        if not _is_int(data.get(field)):
+            errors.append(f"field {field} is not an integer")
+        elif data[field] not in (1, 2):
+            errors.append(f"field {field} is not 1 or 2")
+    for field in ("executed", "synthetic"):
+        if not isinstance(data.get(field), bool):
+            errors.append(f"field {field} is not a boolean")
+    for field in ("fixed_fee_usd", "quoted_fee_usd", "amount_usdc", "usdc_mid",
+                  "fiat_received", "network_fee_usd", "realized_fee_pct", "spread_vs_mid_pct"):
+        value = data.get(field)
+        if value is not None and not _is_finite_number(value):
+            errors.append(f"field {field} is not a finite number or null")
+        elif value is not None and value < 0:
+            errors.append(f"field {field} is negative")
+    if errors:
+        return errors
+
+    executed = data["executed"]
+    if not executed:
+        for field in SWEEP_NOT_EXECUTED_NULLABLE:
+            if data.get(field) is not None:
+                errors.append(f"not_executed record has non-null {field}")
+        if not _sweep_has_notes(data):
+            errors.append("not_executed record requires a populated notes entry")
+    else:
+        for field in SWEEP_NOT_EXECUTED_NULLABLE:
+            if data.get(field) is None:
+                errors.append(f"executed record has null {field}")
+        # Null-requires-notes rules for executed records.
+        hop_fields = [
+            ("tx_hash_in", "tx_hash_in"),
+            ("timestamp_sent", "timestamp_sent"),
+            ("timestamp_coinbase_credit", "timestamp_coinbase_credit"),
+            ("timestamp_fiat_spendable", "timestamp_fiat_spendable"),
+        ]
+        for field, _ in hop_fields:
+            if data.get(field) is None and not _sweep_has_notes(data):
+                errors.append(f"executed record has null {field} without a populated notes entry")
+        if data.get("network_fee_usd") is None and not _sweep_has_notes(data):
+            errors.append("executed record has null network_fee_usd without a populated notes entry")
+        if data.get("funding_tx_hash") is None and not _sweep_has_notes(data):
+            errors.append("executed record has null funding_tx_hash without a populated notes entry")
+        if data.get("fiat_received") is None and not _sweep_has_notes(data):
+            errors.append("executed record has null fiat_received without a populated notes entry")
+        amount = data.get("amount_usdc")
+        fixed = data.get("fixed_fee_usd")
+        net = data.get("network_fee_usd") or 0
+        rfp = data.get("realized_fee_pct")
+        if (
+            _is_finite_number(amount)
+            and amount > 0
+            and _is_finite_number(fixed)
+            and _is_finite_number(rfp)
+            and abs(rfp - 100.0 * (fixed + net) / amount) > 0.005
+        ):
+            errors.append("realized_fee_pct does not match fixed_fee_usd, network_fee_usd, amount_usdc")
+        mid = data.get("usdc_mid")
+        fiat = data.get("fiat_received")
+        svp = data.get("spread_vs_mid_pct")
+        if (
+            _is_finite_number(amount)
+            and amount > 0
+            and _is_finite_number(mid)
+            and mid > 0
+            and _is_finite_number(fiat)
+            and _is_finite_number(svp)
+        ):
+            expected = 100.0 * (amount * mid - fiat) / (amount * mid)
+            if abs(svp - expected) > 0.005:
+                errors.append("spread_vs_mid_pct does not match fiat_received, amount_usdc, usdc_mid")
+    return errors
+
+
+def validate_sweep_path(path):
+    try:
+        with open(path) as f:
+            data = _load_json_strict(f.read())
+    except (OSError, ValueError) as exc:
+        print(f"Failed to load {path}: {exc}")
+        return False
+    errors = validate_sweep_record(data)
     if errors:
         for error in errors:
             print(f"{path}: {error}")
@@ -484,6 +653,100 @@ def self_test():
     if not any("does not match directory slug" in error for error in slug_errors):
         print(f"self-test FAILED: slug mismatch not caught: {slug_errors}")
         return False
+
+    # usdc-fiat-sweep-api sweep-record validator.
+    def _sweep_mutated(**changes):
+        record = _load_json_strict(json.dumps(MINIMAL_SWEEP_EXECUTED))
+        record.update(changes)
+        return record
+
+    def _sweep_deleted(key):
+        record = _load_json_strict(json.dumps(MINIMAL_SWEEP_EXECUTED))
+        del record[key]
+        return record
+
+    MINIMAL_SWEEP_EXECUTED = {
+        "tranche_id": "1-1",
+        "replicate": 1,
+        "executed": True,
+        "synthetic": False,
+        "amount_usdc": 1.0,
+        "tx_hash_in": "0x" + "a" * 64,
+        "deposit_address": "0x" + "b" * 40,
+        "convert_quote_id": "quote-123",
+        "usdc_mid": 1.0,
+        "mid_observed_at": "2026-02-01T00:00:00Z",
+        "timestamp_sent": "2026-02-01T00:00:01Z",
+        "timestamp_coinbase_credit": "2026-02-01T00:00:10Z",
+        "timestamp_fiat_spendable": "2026-02-01T00:00:20Z",
+        "fiat_received": 0.99,
+        "funding_tx_hash": "0x" + "c" * 64,
+        "network_fee_usd": 0.0,
+        "fixed_fee_usd": 0.01,
+        "quoted_fee_usd": 0.01,
+        "realized_fee_pct": 1.0,
+        "spread_vs_mid_pct": 1.0,
+        "notes": None,
+    }
+    if validate_sweep_record(_load_json_strict(json.dumps(MINIMAL_SWEEP_EXECUTED))):
+        print("self-test FAILED: minimal valid sweep record reported errors")
+        return False
+    sweep_cases = [
+        (_sweep_deleted("tranche_id"), "missing field tranche_id", "sweep missing required key"),
+        (_sweep_mutated( tranche_id=42), "tranche_id is not a string or null", "sweep wrong scalar type"),
+        (_sweep_mutated( fixed_fee_usd=None), "field fixed_fee_usd is null", "sweep null non-nullable"),
+        (_sweep_mutated( replicate=3), "replicate is not 1 or 2", "sweep bad replicate"),
+        (_sweep_mutated( executed="yes"), "executed is not a boolean", "sweep non-bool executed"),
+        (_sweep_mutated( fixed_fee_usd=-1), "fixed_fee_usd is negative", "sweep negative fee"),
+        (_sweep_mutated( timestamp_sent="01/02/2026"), "timestamp_sent is not an ISO 8601 timestamp", "sweep bad timestamp"),
+        (_sweep_mutated( amount_usdc=None), "executed record has null amount_usdc", "sweep executed null amount"),
+        (_sweep_mutated( realized_fee_pct=2.0), "realized_fee_pct does not match", "sweep derived fee mismatch"),
+        (_sweep_mutated( spread_vs_mid_pct=9.9), "spread_vs_mid_pct does not match", "sweep derived spread mismatch"),
+    ]
+    for record, substring, label in sweep_cases:
+        errors = validate_sweep_record(record)
+        if not any(substring in error for error in errors):
+            print(f"self-test FAILED: {label} not caught: {errors}")
+            return False
+    not_executed = _load_json_strict(json.dumps(MINIMAL_SWEEP_EXECUTED))
+    not_executed.update(
+        {
+            "executed": False,
+            "amount_usdc": None,
+            "tx_hash_in": None,
+            "deposit_address": None,
+            "convert_quote_id": None,
+            "usdc_mid": None,
+            "mid_observed_at": None,
+            "timestamp_sent": None,
+            "timestamp_coinbase_credit": None,
+            "timestamp_fiat_spendable": None,
+            "fiat_received": None,
+            "realized_fee_pct": None,
+            "spread_vs_mid_pct": None,
+            "network_fee_usd": None,
+            "notes": "pre-registered not_executed reason",
+        }
+    )
+    if validate_sweep_record(not_executed):
+        print(f"self-test FAILED: not_executed record rejected: {validate_sweep_record(not_executed)}")
+        return False
+    bad_ne = _load_json_strict(json.dumps(not_executed))
+    bad_ne["notes"] = None
+    if not any(
+        "not_executed record requires a populated notes entry" in error
+        for error in validate_sweep_record(bad_ne)
+    ):
+        print("self-test FAILED: not_executed missing notes not caught")
+        return False
+    bad_ne2 = _load_json_strict(json.dumps(not_executed))
+    bad_ne2["amount_usdc"] = 1.0
+    if not any(
+        "not_executed record has non-null amount_usdc" in error
+        for error in validate_sweep_record(bad_ne2)
+    ):
+        print("self-test FAILED: not_executed non-null amount not caught")
+        return False
     # Discovery mode: a protocol-only directory (no sessions content) is skipped
     # as pre-registration state; sessions content or no protocol.md with missing
     # analysis.json must fail; empty experiments/ passes.
@@ -551,6 +814,24 @@ def validate_discovery(base):
     for exp_dir in exp_dirs:
         analysis = exp_dir / "analysis.json"
         if not analysis.is_file():
+            if exp_dir.name == "usdc-fiat-sweep-api":
+                # Run-record experiment: sweep records under sessions/ are
+                # validated directly; raw/ artifacts are not structured
+                # records. Pre-registration state (no records yet) is skipped.
+                sessions_dir = exp_dir / "sessions"
+                sweep_records = (
+                    sorted(sessions_dir.glob("*.json")) if sessions_dir.is_dir() else []
+                )
+                if not sweep_records:
+                    print(
+                        f"Skipping {exp_dir.name}: pre-registration state "
+                        "(no analysis.json, no sweep run records yet)"
+                    )
+                    continue
+                for record_path in sweep_records:
+                    if not validate_sweep_path(record_path):
+                        all_ok = False
+                continue
             sessions_dir = exp_dir / "sessions"
             has_sessions_content = sessions_dir.is_dir() and any(
                 p.is_file() and p.name != ".gitkeep" for p in sessions_dir.rglob("*")
@@ -572,9 +853,15 @@ def validate_discovery(base):
 def main():
     if "--self-test" in sys.argv:
         sys.exit(0 if self_test() else 1)
-    file_args = [arg for arg in sys.argv[1:] if arg != "--self-test"]
+    sweep_mode = "--sweep" in sys.argv
+    file_args = [
+        arg for arg in sys.argv[1:] if arg not in ("--self-test", "--sweep")
+    ]
     if file_args:
-        all_ok = all(validate_path(pathlib.Path(arg)) for arg in file_args)
+        all_ok = all(
+            validate_path(pathlib.Path(arg), sweep_record=sweep_mode)
+            for arg in file_args
+        )
         sys.exit(0 if all_ok else 1)
     sys.exit(0 if validate_discovery(pathlib.Path(".").resolve()) else 1)
 
