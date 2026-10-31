@@ -66,9 +66,9 @@ Per-tranche JSON records stored under `experiments/usdc-fiat-sweep/sessions/`. R
 | `replicate` | integer | no | Replicate number within the amount level (1 or 2) |
 | `amount_usdc` | number | no | USDC amount converted |
 | `tx_hash_in` | string | no | On-chain transaction hash of the send to Coinbase |
-| `timestamp_sent` | string | no | Timestamp the on-chain send was made |
-| `timestamp_coinbase_credit` | string | no | Timestamp Coinbase credited the USDC |
-| `timestamp_fiat_spendable` | string | no | Timestamp the fiat became spendable |
+| `timestamp_sent` | string \| null | yes | Timestamp the on-chain send was made; null only if the hop failed or was unobserved, which requires a populated `notes` entry explaining which hop failed |
+| `timestamp_coinbase_credit` | string \| null | yes | Timestamp Coinbase credited the USDC; null only if the hop failed or was unobserved, which requires a populated `notes` entry explaining which hop failed |
+| `timestamp_fiat_spendable` | string \| null | yes | Timestamp the fiat became spendable; null only if the hop failed or was unobserved, which requires a populated `notes` entry explaining which hop failed |
 | `fiat_received` | number | no | Fiat amount received after fees |
 | `quoted_fee_usd` | number | no | Fee quoted by Coinbase at conversion, verbatim from the source |
 | `realized_fee_pct` | number | no | Realized percentage fee of the conversion |

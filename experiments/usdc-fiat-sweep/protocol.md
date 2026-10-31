@@ -17,9 +17,13 @@ Dose-response measurement at four pre-registered amount levels, executed by a hu
 | 1 | $1 | 2 |
 | 2 | $5 | 2 |
 | 3 | $20 | 2 |
-| 4 | full receiver balance | 2 |
+| 4 | full remaining receiver balance | 2 |
 
 Eight conversions total, executed in one execution pass. No tranche is re-run because a number looked unfavorable.
+
+### Funding and execution order
+
+The tranches are pre-funded by a single inbound USDC transfer into the receiver wallet before the first conversion, then executed in ascending amount order: $1, $1, $5, $5, $20, $20, then the two full-balance replicates. The full-balance tranche is defined as the entire remaining receiver balance at that point in the sequence, so both full-balance replicates are executable without any replenishment procedure between them. With an inbound transfer of approximately $60, the six fixed-amount tranches consume $52 and each full-balance replicate sweeps the remaining balance of approximately $4.
 
 ### Endpoints (per tranche)
 
@@ -39,7 +43,7 @@ Spreads consumed by the conversion are taken from MICN-bound funds; all residual
 
 ## Budget
 
-Total volume approximately $30-40; expected $1-3 consumed in spreads.
+Total inbound volume approximately $60 via a single pre-funding transfer to the receiver wallet; $52 is consumed by the fixed-amount tranches and the remainder (approximately $4 per replicate) by the two full-balance tranches. Expected $1-3 consumed in spreads.
 
 ## Analysis Plan
 
