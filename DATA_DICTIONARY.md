@@ -64,7 +64,7 @@ Per-tranche JSON records stored under `experiments/usdc-fiat-sweep/sessions/`. R
 |-------|------|----------|-------------|
 | `tranche_id` | string | no | Tranche identifier (level plus replicate) |
 | `replicate` | integer | no | Replicate number within the amount level (1 or 2) |
-| `amount_usdc` | number | no | USDC amount converted |
+| `amount_usdc` | number \| null | yes | USDC amount converted; non-null for every executed tranche, null only for the pre-registered `not_executed` replicate, which must carry a populated `notes` entry |
 | `tx_hash_in` | string | no | On-chain transaction hash of the send to Coinbase |
 | `timestamp_sent` | string \| null | yes | Timestamp the on-chain send was made; null only if the hop failed or was unobserved, which requires a populated `notes` entry explaining which hop failed |
 | `timestamp_coinbase_credit` | string \| null | yes | Timestamp Coinbase credited the USDC; null only if the hop failed or was unobserved, which requires a populated `notes` entry explaining which hop failed |
