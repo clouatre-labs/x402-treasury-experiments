@@ -15,6 +15,10 @@
  *               Coinbase Advanced Trade convert API.
  *   --funding   interactive: operator pastes the funding tx hash and buy
  *               amounts; writes sessions/funding.json.
+ *   --preflight read-only smoke test: env-var presence (values never read or
+ *               printed), funding.json presence, on-chain receiver balance,
+ *               CDP JWT auth via a harmless GET, spot-price reachability.
+ *               Writes nothing; safe to run any number of times.
  *
  * API surface: Coinbase Advanced Trade REST API (https://api.cdp.coinbase.com,
  * /api/v3/brokerage/...), authenticated with ES256 JWTs per
@@ -56,7 +60,7 @@ const BASE_RPC = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as Address;
 const CHAIN_ID = 8453; // Base mainnet
 const CDP_API_BASE = "https://api.cdp.coinbase.com";
-const SPOT_PRICE_URL = "https://api.developer.coinbase.com/v2/prices/USDC-USD/spot";
+const SPOT_PRICE_URL = "https://api.coinbase.com/v2/prices/USDC-USD/spot";
 
 // Pre-registered tranche ladder (protocol.md). Full-balance replicate 2 is
 // pre-registered as not_executed.
@@ -389,6 +393,78 @@ async function modeDryRun(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Mode: --preflight (read-only smoke test)
+// ---------------------------------------------------------------------------
+
+async function preflight(): Promise<void> {
+  const failures: string[] = [];
+  const check = (name: string, ok: boolean, detail: string): void => {
+    log(`  ${ok ? "PASS" : "FAIL"}  ${name}: ${detail}`);
+    if (!ok) failures.push(name);
+  };
+  const has = (name: string) => {
+    const v = process.env[name];
+    return typeof v === "string" && v.trim() !== "";
+  };
+
+  log("Preflight (read-only; no values are read, printed, or written):");
+
+  for (const name of ["CDP_API_KEY_ID", "CDP_API_KEY_SECRET", "X402_RECEIVER_PRIVATE_KEY", "X402_PAY_TO"]) {
+    check(`env ${name}`, has(name), has(name) ? "present" : "missing");
+  }
+
+  const deposit = process.env.COINBASE_BASE_DEPOSIT_ADDRESS;
+  check(
+    "env COINBASE_BASE_DEPOSIT_ADDRESS",
+    typeof deposit === "string" && deposit.startsWith("0x"),
+    typeof deposit === "string" && deposit.startsWith("0x")
+      ? "present (0x-prefixed)"
+      : "missing (execution aborts without it unless the account API can supply it)",
+  );
+
+  check("funding.json", existsSync(FUNDING_FILE), existsSync(FUNDING_FILE) ? "recorded" : "missing (run --funding after the inbound transfer)");
+
+  let receiver: Address | null = null;
+  try {
+    receiver = receiverAddress();
+    const client = createPublicClient({ chain: base, transport: http(BASE_RPC) });
+    const balUnits = await client.readContract({
+      address: USDC_BASE,
+      abi: erc20Abi,
+      functionName: "balanceOf",
+      args: [receiver],
+    });
+    const bal = Number(formatUnits(balUnits, 6));
+    check("on-chain receiver USDC", true, `${receiver} holds $${bal.toFixed(2)} USDC on Base`);
+    if (existsSync(FUNDING_FILE) && bal <= 0) {
+      check("funded balance", false, "funding.json exists but receiver balance is zero");
+    }
+  } catch (err) {
+    check("on-chain receiver USDC", false, err instanceof Error ? err.message : String(err));
+  }
+
+  try {
+    await cdpRequest("GET", "/api/v3/brokerage/accounts");
+    check("CDP auth (GET accounts)", true, "ES256 JWT accepted by Advanced Trade API");
+  } catch (err) {
+    check("CDP auth (GET accounts)", false, err instanceof Error ? err.message : String(err));
+  }
+
+  try {
+    const res = await fetch(SPOT_PRICE_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    check("spot price endpoint", true, "USDC-USD spot reachable");
+  } catch (err) {
+    check("spot price endpoint", false, err instanceof Error ? err.message : String(err));
+  }
+
+  if (failures.length > 0) {
+    die(`preflight failed (${failures.length} check(s)); fix and re-run`);
+  }
+  log("Preflight passed. Ready for --execute --yes.");
+}
+
+// ---------------------------------------------------------------------------
 // Mode: --execute
 // ---------------------------------------------------------------------------
 
@@ -647,6 +723,10 @@ async function main(): Promise<void> {
     await modeFunding();
     return;
   }
+  if (hasFlag("--preflight")) {
+    await preflight();
+    return;
+  }
   if (hasFlag("--dry-run")) {
     await modeDryRun();
     return;
@@ -658,7 +738,7 @@ async function main(): Promise<void> {
     await modeExecute();
     return;
   }
-  log("Usage: sweep.ts [--dry-run | --execute --yes | --funding]");
+  log("Usage: sweep.ts [--preflight | --dry-run | --funding | --execute --yes]");
   process.exit(args.length === 0 ? 0 : 1);
 }
 
