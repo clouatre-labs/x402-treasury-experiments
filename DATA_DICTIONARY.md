@@ -70,6 +70,7 @@ Per-tranche JSON records stored under `experiments/usdc-fiat-sweep/sessions/`. R
 | `timestamp_coinbase_credit` | string \| null | yes | Timestamp Coinbase credited the USDC; null only if the hop failed or was unobserved, which requires a populated `notes` entry explaining which hop failed |
 | `timestamp_fiat_spendable` | string \| null | yes | Timestamp the fiat became spendable; null only if the hop failed or was unobserved, which requires a populated `notes` entry explaining which hop failed |
 | `fiat_received` | number | no | Fiat amount received after fees |
+| `funding_tx_hash` | string \| null | yes | On-chain transaction hash of the single pre-registered inbound pre-funding transfer; identical on every record of the experiment since there is exactly one transfer; null is not expected — if unrecorded, a populated `notes` entry must explain why |
 | `network_fee_usd` | number \| null | yes | On-chain network (gas) fee for the inbound transfer and deposit legs, in USD; null only when the network fee was zero, in which case a populated `notes` entry must state this |
 | `fixed_fee_usd` | number | no | Coinbase quoted fixed conversion fee for the tranche, in USD; 0 is allowed |
 | `quoted_fee_usd` | number | no | Fee quoted by Coinbase at conversion, verbatim from the source |

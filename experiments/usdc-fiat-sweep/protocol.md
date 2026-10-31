@@ -43,7 +43,7 @@ Spreads consumed by the conversion are taken from MICN-bound funds; all residual
 
 ## Budget
 
-Total inbound volume approximately $60 via a single pre-funding transfer to the receiver wallet; $52 is consumed by the six fixed-amount tranches and the full-balance replicate sweeps the remainder (approximately $4). Expected $1-3 consumed in spreads.
+Total inbound volume approximately $60 via a single pre-funding transfer to the receiver wallet; $52 is consumed by the six fixed-amount tranches and the full-balance replicate sweeps the remainder (approximately $4). Expected $1-3 consumed in spreads. The funding transfer transaction hash is recorded once in the runbook output and reused in every run record for independent recomputation.
 
 ## Analysis Plan
 
