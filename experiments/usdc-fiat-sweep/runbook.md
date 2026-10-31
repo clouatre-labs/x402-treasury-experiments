@@ -1,17 +1,17 @@
 # Runbook: usdc-fiat-sweep
 
-Operator instructions for executing the eight pre-registered conversions. Execute one pass only; never re-run a tranche because a number looked unfavorable.
+Operator instructions for executing the seven executed conversions among the eight pre-registered records (the second full-balance replicate is pre-registered as `not_executed`). Execute one pass only; never re-run a tranche because a number looked unfavorable.
 
 ## Before Starting
 
 1. Record the current advertised Coinbase fee schedule (screenshot or verbatim copy) and save it under `sessions/`.
 2. Retrieve the receiver key (`X402_PAY_TO`) from the secret store at execution time only; never commit it.
-3. Make a single inbound USDC transfer of approximately $60 into the receiver wallet. This pre-funds all eight tranches; no replenishment transfer is made during execution.
-4. Execute the tranches in ascending amount order: $1, $1, $5, $5, $20, $20, then the two full-balance replicates.
+3. Make a single inbound USDC transfer of approximately $60 into the receiver wallet. This pre-funds all tranches; no replenishment transfer is made during execution.
+4. Execute the tranches in ascending amount order: $1, $1, $5, $5, $20, $20, then the full-balance replicate. Do not execute the second full-balance replicate; it is pre-registered as `not_executed`.
 
 ## Executions
 
-For each of the eight tranches:
+For each of the executed tranches (7):
 
 3. Note the USDC mid price at execution time.
 4. Send the tranche amount from the receiver wallet to Coinbase. Capture the on-chain transaction hash and the send timestamp.
@@ -19,7 +19,8 @@ For each of the eight tranches:
 6. Convert to fiat. Capture the quoted fee screen verbatim (screenshot or exact copy).
 7. When the fiat is spendable, capture the spendable timestamp.
 8. Count the manual steps performed for this tranche (button presses, confirmations, screen transitions).
-9. For a full-balance tranche, send the entire remaining receiver balance at that point in the sequence instead of a fixed amount; capture the sent amount as `amount_usdc`.
+9. For the full-balance tranche, send the entire remaining receiver balance at that point in the sequence instead of a fixed amount; capture the sent amount as `amount_usdc`.
+10. For the pre-registered `not_executed` full-balance replicate, write a run record with `amount_usdc` null or 0 (as the schema allows) and a populated `notes` entry stating the pre-registered `not_executed` reason.
 10. Write every raw observation verbatim into `sessions/` as it happens. Do not summarize, round, or clean up. Every raw observation goes verbatim into `sessions/`.
 
 ## After All Tranches
