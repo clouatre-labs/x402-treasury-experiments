@@ -13,8 +13,7 @@ hosts pre-registered measurement experiments on the treasury side of the product
 and [param-description-experiments](https://github.com/clouatre-labs/param-description-experiments).
 Each experiment is committed before it runs: a protocol and operator runbook are fixed in git,
 raw observations are collected verbatim into sessions, and the analyzed record validates against
-the schema in [DATA_DICTIONARY.md](DATA_DICTIONARY.md) in CI. All residual proceeds go to the
-Montreal Indigenous Community NETWORK (MICN).
+the schema in [DATA_DICTIONARY.md](DATA_DICTIONARY.md) in CI.
 
 ## Lifecycle
 
@@ -27,13 +26,12 @@ graph TD
     E --> F[paper]
 ```
 
-The rendered diagram is optional; the Mermaid source above is the canonical artifact and is committed inline in this README.
-
 ## Experiment Index
 
 | Slug | Question | Status | Key Result |
 |------|----------|--------|------------|
-| `usdc-fiat-sweep` | What does it cost to turn L2 USDC micropayment revenue into spendable fiat? | planned | TODO |
+| `usdc-fiat-sweep` | Retail Coinbase off-ramp cost (human-executed) | superseded pre-execution | n/a |
+| `usdc-fiat-sweep-api` | Automated Advanced Trade off-ramp cost across $1-$100+ tranches | planned | TODO |
 
 ## Repository Layout
 
