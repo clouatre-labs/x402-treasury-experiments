@@ -1,41 +1,46 @@
 # Methodology
 
-Experimental design and analysis plan for experiments in this repository. Replace each `TODO` section per experiment; keep this top-level document as the shared methodological contract.
+Experimental design and analysis plan for experiments in this repository. Each experiment's `protocol.md` states the specifics; this top-level document is the shared measurement contract.
 
 ## Research Question
 
-TODO: State the hypothesis or question the repo's experiments address. Frame it so a null result is still informative.
+Each experiment states its question in `experiments/<slug>/protocol.md`. Questions are framed so that a descriptive result is still informative; for LLM-free experiments there is no hypothesis test, only measurement.
 
 ## Pre-Registration
 
-Every experiment MUST have its protocol, rubric, and scoring prompts committed under `experiments/<slug>/` BEFORE any session is run. The commit containing the pre-registration must precede the first run record; edits after data collection begins require a dated addendum in the experiment's `protocol.md`.
+Every experiment MUST have its protocol, operator runbook, and record-extraction instructions committed under `experiments/<slug>/` BEFORE any session is run. The commit containing the pre-registration must precede the first run record; edits after data collection begins require a dated addendum in the experiment's `protocol.md`.
 
-- Rubric criteria are defined before examining any model output.
-- Group assignments are sealed in `label-map.json` before scoring begins.
-- Statistical tests are named in the protocol before data collection.
+- Endpoints and tranche levels are defined before examining any raw output.
+- The comparator condition (for example, an advertised fee schedule) is named in the protocol before data collection.
+- The analysis plan is stated in the protocol before data collection.
 
 ## Experimental Design
 
-TODO: Describe per experiment:
+Each experiment states in its protocol:
 
-- Task and target (issue, dataset, or benchmark used).
-- Groups: control and treatment conditions, with exact prompt text or deltas.
-- Sample size per group and stopping rule.
-- Agent or model configuration (model, temperature, provider, extensions).
+- The quantity measured and the data source (wallet, endpoint, or artifact).
+- Dose levels, replicates, and the stopping rule.
+- The execution pass rule: a single pass; no tranche is re-run because a number looked unfavorable.
+- Comparator condition and how it is recorded at execution time.
 
-## Blind Scoring
+## Measurement Contract
 
-Scorers receive only the output artifacts and the rubric. No group labels, run metadata, or sibling outputs are visible during scoring. Report any inter-rater reliability checks and their agreement statistics.
+Experiments in this repository may be human-executed measurements rather than LLM runs. The contract is:
+
+- Pre-registration before execution: protocol, runbook, and record-extraction rules are fixed in git before the first conversion or measurement.
+- Single pass: each pre-registered measurement is taken exactly once; no re-runs on unfavorable outcomes.
+- Descriptive analysis: results are reported as medians, ranges, and curves; no inferential statistical tests unless a protocol pre-registers one.
+- Raw observations are captured verbatim into `sessions/`; derived records are transcriptions, never reconstructions.
+- Figures are generated only from scripts in `recipe/` into `figures/`.
 
 ## Analysis Plan
 
-Analysis results land in `experiments/<slug>/analysis.json` (schema in [DATA_DICTIONARY.md](DATA_DICTIONARY.md), enforced by `validate_schema.py`). Scores with per-criterion justifications land in `scores.json`. Figures are generated from `recipe/` scripts into `figures/`.
+Analysis results land in `experiments/<slug>/analysis.json` (schema in [DATA_DICTIONARY.md](DATA_DICTIONARY.md), enforced by `validate_schema.py`). Raw run records land under `experiments/<slug>/sessions/`. Figures are generated from `recipe/` scripts into `figures/`.
 
 ## Threats to Validity
 
-TODO: Enumerate, at minimum:
+Each experiment enumerates its own threats in `protocol.md`. Recurring ones:
 
-- Ceiling or floor effects in the rubric.
-- Rubric-scorer co-design bias.
-- Run-to-run variance and seed/provider nondeterminism.
-- Contamination of the task in model training data.
+- Observer knowledge of the comparator before execution; the pre-registration seal is on the outcome, not on comparator knowledge.
+- Comparator drift between pre-registration and execution; the comparator is recorded at execution time.
+- Slippage and spread that are part of the measured quantity, not noise.

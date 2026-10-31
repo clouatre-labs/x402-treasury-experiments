@@ -1,31 +1,31 @@
 {
-  "title": "{{TITLE}}",
-  "description": "TODO: One-paragraph description of the dataset and associated experiments. Replace this placeholder before first release.",
+  "title": "x402 Treasury Experiments",
+  "description": "Pre-registered measurements of the cost and friction of converting accumulated L2 USDC micropayment revenue into spendable fiat.",
   "upload_type": "dataset",
   "access_right": "open",
   "license": "Apache-2.0",
-  "version": "{{VERSION}}",
-  "publication_date": "{{RELEASE_DATE}}",
+  "version": "0.1.0",
+  "publication_date": "2026-11-02",
   "creators": [
     {
-      "name": "{{AUTHOR_FAMILY_NAMES}}, {{AUTHOR_GIVEN_NAMES}}",
-      "orcid": "{{ORCID}}"
+      "name": "Clouâtre, Hugues",
+      "orcid": "https://orcid.org/0009-0002-4291-1999"
     }
   ],
   "related_identifiers": [
     {
-      "identifier": "https://github.com/clouatre-labs/{{REPO_NAME}}",
+      "identifier": "https://github.com/clouatre-labs/x402-treasury-experiments",
       "relation": "isIdenticalTo",
       "resource_type": "software"
     }
   ],
   "keywords": [
-    "llm-agents",
     "pre-registered-experiment",
     "reproducibility",
-    "llm-evaluation"
+    "payments",
+    "treasury"
   ],
   "custom": {
-    "code:codeRepository": "https://github.com/clouatre-labs/{{REPO_NAME}}"
+    "code:codeRepository": "https://github.com/clouatre-labs/x402-treasury-experiments"
   }
 }

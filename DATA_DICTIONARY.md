@@ -55,3 +55,28 @@ Each experiment directory `experiments/<slug>/` contains:
 ## scores.json
 
 Free-form per-criterion scoring keyed by run ID; each entry SHOULD include the score value, per-criterion results, and scorer justifications.
+
+## usdc-fiat-sweep run-record schema
+
+Per-tranche JSON records stored under `experiments/usdc-fiat-sweep/sessions/`. Raw session artifacts are transcribed into these records per `experiments/usdc-fiat-sweep/record-extraction.md`.
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| `tranche_id` | string | no | Tranche identifier (level plus replicate) |
+| `replicate` | integer | no | Replicate number within the amount level (1 or 2) |
+| `amount_usdc` | number \| null | yes | USDC amount converted; non-null for every executed tranche, null only for the pre-registered `not_executed` replicate, which must carry a populated `notes` entry |
+| `tx_hash_in` | string | no | On-chain transaction hash of the send to Coinbase |
+| `timestamp_sent` | string \| null | yes | Timestamp the on-chain send was made; null only if the hop failed or was unobserved, which requires a populated `notes` entry explaining which hop failed |
+| `timestamp_coinbase_credit` | string \| null | yes | Timestamp Coinbase credited the USDC; null only if the hop failed or was unobserved, which requires a populated `notes` entry explaining which hop failed |
+| `timestamp_fiat_spendable` | string \| null | yes | Timestamp the fiat became spendable; null only if the hop failed or was unobserved, which requires a populated `notes` entry explaining which hop failed |
+| `fiat_received` | number | no | Fiat amount received after fees |
+| `funding_tx_hash` | string \| null | yes | On-chain transaction hash of the single pre-registered inbound pre-funding transfer; identical on every record of the experiment since there is exactly one transfer; null is not expected — if unrecorded, a populated `notes` entry must explain why |
+| `network_fee_usd` | number \| null | yes | On-chain network (gas) fee for the inbound transfer and deposit legs, in USD; null only when the network fee was zero, in which case a populated `notes` entry must state this |
+| `fixed_fee_usd` | number | no | Coinbase quoted fixed conversion fee for the tranche, in USD; 0 is allowed |
+| `quoted_fee_usd` | number | no | Fee quoted by Coinbase at conversion, verbatim from the source |
+| `realized_fee_pct` | number | no | Derived quantity, not recorded directly: computed from `fixed_fee_usd`, `network_fee_usd`, and `amount_usdc` |
+| `spread_vs_mid_pct` | number | no | Derived quantity, not recorded directly: computed from the fiat received and the observed USDC mid at execution time |
+| `manual_steps` | integer | no | Count of manual operator steps for the tranche |
+| `notes` | string \| null | yes | Optional note (e.g. fallback used, missing-value explanation) |
+
+The template's `analysis.json` schema above still governs the final `experiments/usdc-fiat-sweep/analysis.json` after the run, with `control_condition` = "advertised Coinbase fee schedule", `treatment_condition` = "realized conversion cost per tranche", and `model` = "n/a (human-executed off-ramp)".

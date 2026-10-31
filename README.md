@@ -1,11 +1,20 @@
 <p align="center">
   <a href="https://conventionalcommits.org"><img alt="Conventional Commits" src="https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg?style=for-the-badge" height="20"></a>
-  <a href="https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template"><img alt="GitHub Template" src="https://img.shields.io/badge/GitHub-Template-blue.svg?style=for-the-badge&logo=github" height="20"></a>
+  <a href="https://github.com/clouatre-labs/x402-treasury-experiments/blob/main/LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge" height="20"></a>
+  <img alt="result-pending" src="https://img.shields.io/badge/result-pending-lightgrey.svg?style=for-the-badge" height="20">
 </p>
 
-<h1 align="center">{{REPO_NAME}}</h1>
+<h1 align="center">x402 Treasury Experiments</h1>
 
-{{REPO_NAME}} is a template repository for pre-registered LLM experiments. Each experiment is committed before it runs: a protocol, runner prompt, and scorer prompt are fixed in git, results are collected as raw sessions, scoring is performed blind against a rubric, and the analyzed record validates against the schema in [DATA_DICTIONARY.md](DATA_DICTIONARY.md) in CI. This structure makes every reported number traceable to a pre-registered design and reproducible by anyone with repository access.
+What does it cost to turn L2 USDC micropayment revenue into spendable fiat? This repository
+hosts pre-registered measurement experiments on the treasury side of the production site
+[clouatre.ca](https://clouatre.ca), analogous in style to the sibling repositories
+[webmcp-description-benchmarks](https://github.com/clouatre-labs/webmcp-description-benchmarks)
+and [param-description-experiments](https://github.com/clouatre-labs/param-description-experiments).
+Each experiment is committed before it runs: a protocol and operator runbook are fixed in git,
+raw observations are collected verbatim into sessions, and the analyzed record validates against
+the schema in [DATA_DICTIONARY.md](DATA_DICTIONARY.md) in CI. All residual proceeds go to the
+Montreal Indigenous Community NETWORK (MICN).
 
 ## Lifecycle
 
@@ -24,7 +33,7 @@ The rendered diagram is optional; the Mermaid source above is the canonical arti
 
 | Slug | Question | Status | Key Result |
 |------|----------|--------|------------|
-| `<slug>` | TODO | planned \| running \| analyzed | TODO |
+| `usdc-fiat-sweep` | What does it cost to turn L2 USDC micropayment revenue into spendable fiat? | planned | TODO |
 
 ## Repository Layout
 
@@ -32,7 +41,7 @@ The rendered diagram is optional; the Mermaid source above is the canonical arti
 - `recipe/` - analysis notebooks and scripts that regenerate figures
 - `figures/` - generated figures
 - [METHODOLOGY.md](METHODOLOGY.md) - shared experimental design contract
-- [DATA_DICTIONARY.md](DATA_DICTIONARY.md) - schema for `analysis.json` and `scores.json`
+- [DATA_DICTIONARY.md](DATA_DICTIONARY.md) - schema for `analysis.json` and run records
 - [CITATION.cff](CITATION.cff) and `.zenodo.json` - citation metadata
 
 ## Reproduction
@@ -47,12 +56,8 @@ The rendered diagram is optional; the Mermaid source above is the canonical arti
 
 4. Regenerate figures from the recipes in `recipe/`.
 
-Each experiment directory under `experiments/` contains its protocol, runner and scorer prompts, raw sessions, and analysis records, so any result can be traced back to its pre-registered design.
+Each experiment directory under `experiments/` contains its protocol, operator runbook, record-extraction instructions, raw sessions, and analysis records, so any result can be traced back to its pre-registered design.
 
 ## Citing This Work
 
-See [CITATION.cff](CITATION.cff). TODO: fill in authors, version, release date, and DOI before first release.
-
-## Using This Template
-
-Clone or click **Use this template**, then run `bash scripts/bootstrap.sh` to create standard labels and work through the post-clone checklist in [docs/REPO-STANDARDS.md](docs/REPO-STANDARDS.md). Replace all `{{...}}` placeholders in this README, [CITATION.cff](CITATION.cff), `.zenodo.json`, and [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CITATION.cff](CITATION.cff). A DOI will be added before first release.

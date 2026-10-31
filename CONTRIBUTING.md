@@ -1,10 +1,12 @@
 # Contributing
 
-Thanks for contributing to {{REPO_NAME}}. This repository hosts pre-registered experiments; the rules below exist to keep results trustworthy.
+Thanks for contributing to x402-treasury-experiments. This repository hosts pre-registered experiments; the rules below exist to keep results trustworthy.
 
 ## Pre-Registration Requirement
 
-Before running any experiment, commit `experiments/<slug>/protocol.md`, `runner-prompt.md`, and `scorer-prompt.md` describing the task, groups, sample size, rubric, and statistical test. The pre-registration commit must precede the first run. Post-hoc protocol edits require a dated addendum, never a silent rewrite.
+Before running any experiment, commit `experiments/<slug>/protocol.md` describing the task, groups, sample size, and statistical test. The pre-registration commit must precede the first run. Post-hoc protocol edits require a dated addendum, never a silent rewrite.
+
+The remaining artifacts depend on the experiment type. LLM experiments additionally commit `runner-prompt.md` and `scorer-prompt.md`, are executed via the runner, and are scored blind against the rubric. Measurement experiments additionally commit `runbook.md` and `record-extraction.md`, are executed by a human operator in a single pass, and are transcribed verbatim from raw artifacts.
 
 ## Schema Validation
 
@@ -21,7 +23,7 @@ CI runs the same validator in self-test mode; a PR whose `analysis.json` files f
 1. Create `experiments/<slug>/` following the layout in [experiments/README.md](experiments/README.md).
 2. Commit the pre-registration artifacts.
 3. Run the experiment; store raw session artifacts under `sessions/`.
-4. Score blind against the rubric; write `scores.json` and `analysis.json`.
+4. LLM experiments: score blind against the rubric; write `scores.json` and `analysis.json`. Measurement experiments: transcribe raw artifacts per `record-extraction.md`; write `analysis.json`.
 5. Validate, then update the experiment index table in [README.md](README.md).
 
 ## General Guidelines
