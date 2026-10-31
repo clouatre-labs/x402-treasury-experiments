@@ -3,8 +3,9 @@ message: "If you use this dataset, please cite it using the metadata below."
 type: dataset
 title: "x402 Treasury Experiments"
 authors:
-  - family-names: "Clouatre"
+  - family-names: "Clouâtre"
     given-names: "Hugues"
+    orcid: "https://orcid.org/0009-0002-4291-1999"
 repository-code: https://github.com/clouatre-labs/x402-treasury-experiments
 license: Apache-2.0
 date-released: "2026-11-02"
