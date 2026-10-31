@@ -6,8 +6,9 @@ Operator instructions for executing the seven executed conversions among the eig
 
 1. Record the current advertised Coinbase fee schedule (screenshot or verbatim copy) and save it under `sessions/`.
 2. Retrieve the receiver key (`X402_PAY_TO`) from the secret store at execution time only; never commit it.
-3. Make a single inbound USDC transfer of approximately $60 into the receiver wallet. This pre-funds all tranches; no replenishment transfer is made during execution.
-4. Execute the tranches in ascending amount order: $1, $1, $5, $5, $20, $20, then the full-balance replicate. Do not execute the second full-balance replicate; it is pre-registered as `not_executed`.
+3. Acquire approximately $60 of USDC on Coinbase via fiat-to-USDC conversion in the same account, recording the conversion quote and timestamp; then make a single inbound USDC transfer into the receiver wallet. This pre-funds all tranches; no replenishment transfer is made during execution.
+4. Rehearsal (synthetic, zero cost): before execution, create 8 synthetic run records marked `synthetic:true` covering all tranche shapes including the `not_executed` replicate, validate them against the DATA_DICTIONARY.md schema by hand-check or ad-hoc script, generate all three figures from the synthetic data, then delete every synthetic artifact. Synthetic records are never committed to `sessions/`.
+5. Execute the tranches in ascending amount order: $1, $1, $5, $5, $20, $20, then the full-balance replicate. Do not execute the second full-balance replicate; it is pre-registered as `not_executed`.
 
 ## Executions
 
