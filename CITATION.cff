@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this dataset, please cite it using the metadata below."
+type: dataset
+title: "{{TITLE}}"
+authors:
+  - family-names: "{{AUTHOR_FAMILY_NAMES}}"
+    given-names: "{{AUTHOR_GIVEN_NAMES}}"
+    orcid: "https://orcid.org/{{ORCID}}"
+repository-code: https://github.com/clouatre-labs/{{REPO_NAME}}
+license: Apache-2.0
+date-released: "{{RELEASE_DATE}}"
+version: "{{VERSION}}"
+abstract: >
+  TODO: One-paragraph abstract describing the dataset and the experiments
+  it contains. Replace this placeholder before first release.
+keywords:
+  - llm-agents
+  - pre-registered-experiment
+  - reproducibility
+  - llm-evaluation

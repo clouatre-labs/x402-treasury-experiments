@@ -1,0 +1,40 @@
+{
+  "experiment": "example-fixture",
+  "schema_version": "1.0.0",
+  "title": "Example Fixture Experiment",
+  "issue": null,
+  "date": "2026-01-01",
+  "model": "model-under-test",
+  "n_per_group": 5,
+  "control_condition": "standard instructions",
+  "treatment_condition": "modified instructions",
+  "rubric_version": "rubric-v1",
+  "orchestrator_session": null,
+  "repo_head": "0000000000000000000000000000000000000000",
+  "experiment_start": "2026-01-01T00:00:00Z",
+  "experiment_end": "2026-01-01T01:00:00Z",
+  "analyzed_at": "2026-01-02T00:00:00Z",
+  "runs": {
+    "control_1": {
+      "group": "control",
+      "session_id": "20260101_01",
+      "messages": 10,
+      "input_tokens": 100,
+      "output_tokens": 50,
+      "total_tokens": 150,
+      "wall_clock_seconds": 30,
+      "bytes": 1024,
+      "note": null
+    }
+  },
+  "scores": {
+    "control_1": {
+      "pass": true
+    }
+  },
+  "statistical_test": "fisher-exact",
+  "conclusion": "No effect observed.",
+  "pre_acknowledged_limitations": [
+    "small sample size"
+  ]
+}

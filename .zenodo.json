@@ -1,0 +1,31 @@
+{
+  "title": "{{TITLE}}",
+  "description": "TODO: One-paragraph description of the dataset and associated experiments. Replace this placeholder before first release.",
+  "upload_type": "dataset",
+  "access_right": "open",
+  "license": "Apache-2.0",
+  "version": "{{VERSION}}",
+  "publication_date": "{{RELEASE_DATE}}",
+  "creators": [
+    {
+      "name": "{{AUTHOR_FAMILY_NAMES}}, {{AUTHOR_GIVEN_NAMES}}",
+      "orcid": "{{ORCID}}"
+    }
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/clouatre-labs/{{REPO_NAME}}",
+      "relation": "isIdenticalTo",
+      "resource_type": "software"
+    }
+  ],
+  "keywords": [
+    "llm-agents",
+    "pre-registered-experiment",
+    "reproducibility",
+    "llm-evaluation"
+  ],
+  "custom": {
+    "code:codeRepository": "https://github.com/clouatre-labs/{{REPO_NAME}}"
+  }
+}

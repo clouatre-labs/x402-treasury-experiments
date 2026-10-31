@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/**"
+      - ".commitlintrc.yml"
+      - ".zenodo.json"
+      - "CITATION.cff"
+      - "CONTRIBUTING.md"
+      - "docs/**"
+      - "experiments/**"
+      - "recipe/**"
+      - "validate_schema.py"
+      - "**.md"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  lint-commits:
+    name: Lint Commits
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - name: Cache npm
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: commitlint-${{ hashFiles('.commitlintrc.yml') }}
+          restore-keys: commitlint-
+      - name: Install commitlint
+        run: |
+          npm install --no-save \
+            @commitlint/cli@21.2.1 \
+            @commitlint/config-conventional@21.2.0
+      - name: Validate commit messages
+        run: |
+          npx commitlint \
+            --from ${{ github.event.pull_request.base.sha }} \
+            --to ${{ github.event.pull_request.head.sha }} \
+            --verbose
+
+  schema-check:
+    name: Schema Check
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - name: Validate experiment schemas
+        run: |
+          uv run python validate_schema.py --self-test
+          uv run python validate_schema.py
+
+  # Aggregate status check: add language-specific jobs (lint, test, build)
+  # to the needs array as the repo grows; the ruleset keeps requiring only
+  # this one check.
+  ci-result:
+    name: CI Result
+    runs-on: ubuntu-26.04-arm
+    needs: [lint-commits, schema-check]
+    if: always()
+    permissions: {}
+    steps:
+      - name: Verify all jobs passed or were skipped
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "::error::One or more CI jobs failed or were cancelled."
+            exit 1
+          fi
+          echo "All CI jobs passed or were skipped."

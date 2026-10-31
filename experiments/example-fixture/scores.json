@@ -1,0 +1,10 @@
+{
+  "control_1": {
+    "pass": true,
+    "criteria": {
+      "instruction_followed": true,
+      "format_correct": true
+    },
+    "justification": "Runner completed the task as instructed."
+  }
+}
