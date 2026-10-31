@@ -484,19 +484,42 @@ def self_test():
     if not any("does not match directory slug" in error for error in slug_errors):
         print(f"self-test FAILED: slug mismatch not caught: {slug_errors}")
         return False
-    # Discovery mode: missing analysis.json must fail, empty experiments/ passes.
+    # Discovery mode: a protocol-only directory (no sessions content) is skipped
+    # as pre-registration state; sessions content or no protocol.md with missing
+    # analysis.json must fail; empty experiments/ passes.
     with tempfile.TemporaryDirectory() as tmp:
         base = pathlib.Path(tmp)
-        missing = base / "experiments" / "exp-missing"
-        missing.mkdir(parents=True)
+        pre_reg = base / "experiments" / "exp-pre-reg"
+        pre_reg.mkdir(parents=True)
+        (pre_reg / "protocol.md").write_text("# Protocol\n")
+        (pre_reg / "sessions").mkdir()
+        (pre_reg / "sessions" / ".gitkeep").write_text("")
+        pending = base / "experiments" / "exp-pending"
+        pending.mkdir(parents=True)
+        (pending / "protocol.md").write_text("# Protocol\n")
+        (pending / "sessions").mkdir()
+        (pending / "sessions" / "raw.txt").write_text("raw\n")
+        (pending / "sessions" / ".gitkeep").write_text("")
         present = base / "experiments" / "exp-present"
         present.mkdir()
         record = _load_json_strict(json.dumps(MINIMAL_VALID_RECORD))
         record["experiment"] = "exp-present"
         (present / "analysis.json").write_text(json.dumps(record))
         if validate_discovery(base):
-            print("self-test FAILED: discovery accepted missing analysis.json")
+            print("self-test FAILED: discovery accepted sessions content without analysis.json")
             return False
+        pre_reg_only_base = pathlib.Path(tempfile.mkdtemp())
+        try:
+            only_pre = pre_reg_only_base / "experiments" / "exp-pre-reg"
+            only_pre.mkdir(parents=True)
+            (only_pre / "protocol.md").write_text("# Protocol\n")
+            (only_pre / "sessions").mkdir()
+            (only_pre / "sessions" / ".gitkeep").write_text("")
+            if not validate_discovery(pre_reg_only_base):
+                print("self-test FAILED: discovery rejected pre-registration-only state")
+                return False
+        finally:
+            shutil.rmtree(pre_reg_only_base)
         empty_base = pathlib.Path(tempfile.mkdtemp())
         try:
             (empty_base / "experiments").mkdir()
@@ -506,7 +529,7 @@ def self_test():
         finally:
             shutil.rmtree(empty_base)
     print(
-        "self-test passed: valid record accepted, each rule rejects its invalid case, discovery flags missing analysis.json"
+        "self-test passed: valid record accepted, each rule rejects its invalid case, discovery skips pre-registration state and flags sessions content without analysis.json"
     )
     return True
 
@@ -528,6 +551,16 @@ def validate_discovery(base):
     for exp_dir in exp_dirs:
         analysis = exp_dir / "analysis.json"
         if not analysis.is_file():
+            sessions_dir = exp_dir / "sessions"
+            has_sessions_content = sessions_dir.is_dir() and any(
+                p.is_file() and p.name != ".gitkeep" for p in sessions_dir.rglob("*")
+            )
+            if (exp_dir / "protocol.md").is_file() and not has_sessions_content:
+                print(
+                    f"Skipping {exp_dir.name}: pre-registration state "
+                    "(protocol.md present, no sessions content, no analysis.json)"
+                )
+                continue
             print(f"Validation error: missing {analysis}")
             all_ok = False
             continue
