@@ -55,3 +55,25 @@ Each experiment directory `experiments/<slug>/` contains:
 ## scores.json
 
 Free-form per-criterion scoring keyed by run ID; each entry SHOULD include the score value, per-criterion results, and scorer justifications.
+
+## usdc-fiat-sweep run-record schema
+
+Per-tranche JSON records stored under `experiments/usdc-fiat-sweep/sessions/`. Raw session artifacts are transcribed into these records per `experiments/usdc-fiat-sweep/record-extraction.md`.
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| `tranche_id` | string | no | Tranche identifier (level plus replicate) |
+| `replicate` | integer | no | Replicate number within the amount level (1 or 2) |
+| `amount_usdc` | number | no | USDC amount converted |
+| `tx_hash_in` | string | no | On-chain transaction hash of the send to Coinbase |
+| `timestamp_sent` | string | no | Timestamp the on-chain send was made |
+| `timestamp_coinbase_credit` | string | no | Timestamp Coinbase credited the USDC |
+| `timestamp_fiat_spendable` | string | no | Timestamp the fiat became spendable |
+| `fiat_received` | number | no | Fiat amount received after fees |
+| `quoted_fee_usd` | number | no | Fee quoted by Coinbase at conversion, verbatim from the source |
+| `realized_fee_pct` | number | no | Realized percentage fee of the conversion |
+| `spread_vs_mid_pct` | number | no | Spread vs USDC mid at execution time, in percent |
+| `manual_steps` | integer | no | Count of manual operator steps for the tranche |
+| `notes` | string \| null | yes | Optional note (e.g. fallback used, missing-value explanation) |
+
+The template's `analysis.json` schema above still governs the final `experiments/usdc-fiat-sweep/analysis.json` after the run, with `control_condition` = "advertised Coinbase fee schedule", `treatment_condition` = "realized conversion cost per tranche", and `model` = "n/a (human-executed off-ramp)".

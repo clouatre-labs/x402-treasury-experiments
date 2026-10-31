@@ -1,20 +1,19 @@
 cff-version: 1.2.0
 message: "If you use this dataset, please cite it using the metadata below."
 type: dataset
-title: "{{TITLE}}"
+title: "x402 Treasury Experiments"
 authors:
-  - family-names: "{{AUTHOR_FAMILY_NAMES}}"
-    given-names: "{{AUTHOR_GIVEN_NAMES}}"
-    orcid: "https://orcid.org/{{ORCID}}"
-repository-code: https://github.com/clouatre-labs/{{REPO_NAME}}
+  - family-names: "Clouatre"
+    given-names: "Hugues"
+repository-code: https://github.com/clouatre-labs/x402-treasury-experiments
 license: Apache-2.0
-date-released: "{{RELEASE_DATE}}"
-version: "{{VERSION}}"
+date-released: "2026-11-02"
+version: "0.1.0"
 abstract: >
-  TODO: One-paragraph abstract describing the dataset and the experiments
-  it contains. Replace this placeholder before first release.
+  Pre-registered measurements of the cost and friction of converting
+  accumulated L2 USDC micropayment revenue into spendable fiat.
 keywords:
-  - llm-agents
   - pre-registered-experiment
   - reproducibility
-  - llm-evaluation
+  - payments
+  - treasury
