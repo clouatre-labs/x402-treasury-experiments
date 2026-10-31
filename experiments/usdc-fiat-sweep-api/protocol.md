@@ -55,10 +55,6 @@ The receiver wallet of clouatre.ca x402 revenue (`X402_PAY_TO`, Base mainnet). T
 
 Fallback if the receiver key is unavailable: do not execute. There is no key fallback for this experiment; a missing key aborts the run before any tranche.
 
-## Charity Note
-
-Spreads consumed by the conversion are taken from MICN-bound funds; all residual proceeds still route to the Montreal Indigenous Community NETWORK (MICN), carrying over the Charity Note from the superseded experiment.
-
 ## Budget
 
 Total inbound volume: a single pre-funding transfer of approximately $153 USDC plus approximately $0.10 ETH. The seven fixed-amount tranches consume $152; the full-balance replicate sweeps the remainder (approximately $1). Expected consumption in spreads is single-digit dollars. The operator-approved maximum inbound volume for this experiment is $160; the superseded design's approximately $60 budget predates the added $100 tranche level and does not apply. The funding transfer transaction hash is recorded once in the funding record and reused in every run record for independent recomputation.
