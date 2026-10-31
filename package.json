@@ -1,0 +1,13 @@
+{
+  "name": "x402-treasury-experiments",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "jose": "^6",
+    "viem": "^2"
+  }
+}
