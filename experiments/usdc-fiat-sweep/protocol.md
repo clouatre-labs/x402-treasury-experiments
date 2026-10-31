@@ -23,7 +23,7 @@ Eight pre-registered records total: 7 executed conversions plus 1 pre-registered
 
 ### Funding and execution order
 
-The tranches are pre-funded by a single inbound USDC transfer into the receiver wallet before the first conversion, then executed in ascending amount order: $1, $1, $5, $5, $20, $20, then the full-balance replicate. Every tranche is funded solely by the single pre-registered inbound transfer; no replenishment exists or is needed; the full-balance tranche consumes the residual at its position in the ascending sequence. The full-balance tranche is defined as the entire remaining receiver balance at that point in the sequence, so its replicate 1 is executable without any replenishment procedure and its replicate 2 is pre-registered as `not_executed` with reason "single-balance wallet: the full-balance tranche by definition exhausts the residual, so it has one executable replicate". With an inbound transfer of approximately $60, the six fixed-amount tranches consume $52 and the full-balance replicate sweeps the remaining balance of approximately $4.
+The tranches are pre-funded by a single inbound USDC transfer into the receiver wallet before the first conversion, then executed in ascending amount order: $1, $1, $5, $5, $20, $20, then the full-balance replicate. Every tranche is funded solely by the single pre-registered inbound transfer; no replenishment exists or is needed; the full-balance tranche consumes the residual at its position in the ascending sequence. The full-balance tranche is defined as the entire remaining receiver balance at that point in the sequence, so its replicate 1 is executable without any replenishment procedure and its replicate 2 is pre-registered as `not_executed` with reason "single-balance wallet: the full-balance tranche by definition exhausts the residual, so it has one executable replicate". With an inbound transfer of approximately $60, the six fixed-amount tranches consume $52 and the full-balance replicate sweeps the remaining balance of approximately $8.
 
 ### Endpoints (per tranche)
 
@@ -43,7 +43,7 @@ Spreads consumed by the conversion are taken from MICN-bound funds; all residual
 
 ## Budget
 
-Total inbound volume approximately $60 via a single pre-funding transfer to the receiver wallet; $52 is consumed by the six fixed-amount tranches and the full-balance replicate sweeps the remainder (approximately $4). Expected $1-3 consumed in spreads. The funding transfer transaction hash is recorded once in the runbook output and reused in every run record for independent recomputation.
+Total inbound volume approximately $60 via a single pre-funding transfer to the receiver wallet; $52 is consumed by the six fixed-amount tranches and the full-balance replicate sweeps the remainder (approximately $8). Expected $1-3 consumed in spreads. The funding transfer transaction hash is recorded once in the runbook output and reused in every run record for independent recomputation.
 
 ## Analysis Plan
 

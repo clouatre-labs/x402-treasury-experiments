@@ -21,9 +21,9 @@ For each of the executed tranches (7):
 8. Count the manual steps performed for this tranche (button presses, confirmations, screen transitions).
 9. For the full-balance tranche, send the entire remaining receiver balance at that point in the sequence instead of a fixed amount; capture the sent amount as `amount_usdc`.
 10. For the pre-registered `not_executed` full-balance replicate, write a run record with `amount_usdc` null or 0 (as the schema allows) and a populated `notes` entry stating the pre-registered `not_executed` reason.
-10. Write every raw observation verbatim into `sessions/` as it happens. Do not summarize, round, or clean up. Every raw observation goes verbatim into `sessions/`.
+11. Write every raw observation verbatim into `sessions/` as it happens. Do not summarize, round, or clean up. Every raw observation goes verbatim into `sessions/`.
 
 ## After All Tranches
 
-11. Confirm `sessions/` contains one raw artifact set per tranche (tx hash, timestamps, quoted fee, step count, notes).
-12. Transcribe into run records using [record-extraction.md](record-extraction.md). Do not invent values.
+12. Confirm `sessions/` contains one raw artifact set per tranche (tx hash, timestamps, quoted fee, step count, notes).
+13. Transcribe into run records using [record-extraction.md](record-extraction.md). Do not invent values.
