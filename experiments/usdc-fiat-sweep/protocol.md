@@ -1,5 +1,7 @@
 # Protocol: usdc-fiat-sweep
 
+> **Superseded.** This human-executed Coinbase retail design was withdrawn before execution: `sessions/` is empty and zero outcomes were observed. It is replaced by the fully automated Coinbase Advanced Trade API design in [../usdc-fiat-sweep-api/](../usdc-fiat-sweep-api/). Reasons: (1) the retail flow placed a heavy manual operator burden on every tranche (seven conversions with per-hop screen observations), and (2) the API design measures the best programmable rail and removes the operator-in-the-loop confound from the latency and fee endpoints. The pre-registration seal is preserved: this withdrawal happened before any outcome was observed, so no result was ever seen and no choice was informed by one. The files below are retained unmodified as the sealed original; do not execute them.
+
 ## Research Question
 
 What is the true cost and friction of converting accumulated L2 USDC micropayment revenue to fiat, and how does fixed-cost structure behave at micropayment scale?

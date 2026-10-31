@@ -8,6 +8,7 @@ Thumbs.db
 *.tmp
 
 node_modules/
+__pycache__/
 
 .worktrees/
 .handoff/
