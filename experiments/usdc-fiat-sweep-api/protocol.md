@@ -22,7 +22,7 @@ Dose-response measurement at five pre-registered amount levels, executed entirel
 | 4 | $100 | 1 |
 | 5 | full remaining receiver balance | 2 (one executable) |
 
-Ten pre-registered records total: 9 executed conversions plus 1 pre-registered `not_executed` record. No tranche is re-run because a number looked unfavorable.
+Nine pre-registered records total: 8 executed conversions plus 1 pre-registered `not_executed` record. No tranche is re-run because a number looked unfavorable.
 
 ### Funding and execution order
 
@@ -61,7 +61,7 @@ Spreads consumed by the conversion are taken from MICN-bound funds; all residual
 
 ## Budget
 
-Total inbound volume: a single pre-funding transfer of approximately $153 USDC plus approximately $0.10 ETH. The eight fixed-amount tranches consume $152; the full-balance replicate sweeps the remainder (approximately $1). Expected consumption in spreads is single-digit dollars. The operator-approved maximum inbound volume for this experiment is $160; the superseded design's approximately $60 budget predates the added $100 tranche level and does not apply. The funding transfer transaction hash is recorded once in the funding record and reused in every run record for independent recomputation.
+Total inbound volume: a single pre-funding transfer of approximately $153 USDC plus approximately $0.10 ETH. The seven fixed-amount tranches consume $152; the full-balance replicate sweeps the remainder (approximately $1). Expected consumption in spreads is single-digit dollars. The operator-approved maximum inbound volume for this experiment is $160; the superseded design's approximately $60 budget predates the added $100 tranche level and does not apply. The funding transfer transaction hash is recorded once in the funding record and reused in every run record for independent recomputation.
 
 ## Analysis Plan
 

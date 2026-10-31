@@ -1,6 +1,6 @@
 # Runbook: usdc-fiat-sweep-api
 
-Operator instructions for executing the nine executed conversions among the ten pre-registered records (the second full-balance replicate is pre-registered as `not_executed`). Execute one pass only; never re-run a tranche because a number looked unfavorable. All conversion work is done by [sweep.ts](sweep.ts); the operator never clicks through a conversion UI.
+Operator instructions for executing the eight executed conversions among the nine pre-registered records (the second full-balance replicate is pre-registered as `not_executed`). Execute one pass only; never re-run a tranche because a number looked unfavorable. All conversion work is done by [sweep.ts](sweep.ts); the operator never clicks through a conversion UI.
 
 ## Operator steps
 
@@ -46,7 +46,7 @@ Written for a non-involved owner. The receiver private key never appears in any 
 ### d. Afterwards
 
 1. Confirm the key is unset: `test -z "$X402_RECEIVER_PRIVATE_KEY" && echo ok`.
-2. Confirm `sessions/raw/` contains one artifact set per tranche and `sessions/` contains ten run records.
+2. Confirm `sessions/raw/` contains one artifact set per tranche and `sessions/` contains nine run records.
 3. Verify the repository contains no key material: `git diff` and `git status` show only code, docs, and session records.
 
 ## Execution detail (performed by the script)

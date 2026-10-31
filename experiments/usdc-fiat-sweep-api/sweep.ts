@@ -4,7 +4,7 @@
  * pre-registered experiment.
  *
  * Modes:
- *   --dry-run   full synthetic rehearsal: 10 records (9 executed +
+ *   --dry-run   full synthetic rehearsal: 9 records (8 executed +
  *               1 not_executed) marked synthetic:true, validated against
  *               the DATA_DICTIONARY.md schema via validate_schema.py, three
  *               figures generated into a temp dir; writes nothing into the
