@@ -37,28 +37,23 @@ residual balance after `full-1` runs.
 | `full-1` | 5.25908 | 5.25908 | $0.00 | 0.00% | 0% | 5s |
 | **Total** | **157.25908** | **157.25908** | **$0.00** | **0.00%** | **0%** | — |
 
-Realized fee per tranche, with the advertised fee schedule overlaid:
+The per-tranche fee result is a constant (all rows above read $0.00 / 0.00% /
+0%), which the table states more precisely than a chart of zeros; the
+fee-vs-amount chart that the frozen recipe pipeline emits is kept as a
+pipeline artifact under `figures/` but is not embedded here. The one
+quantitative result with variance is latency:
 
-![Realized fee falls as tranche amount grows; advertised fee schedule overlaid](../figures/usdc_fiat_sweep_fig1_fee_vs_amount.png)
+![Fiat lands spendable within five minutes of the send](../figures/usdc_fiat_sweep_hop_latency_clean.png)
 
-*Figure 1: Realized fee per executed tranche (all 0.00%), with the advertised
-Coinbase fixed-fee schedule as a percentage of tranche amount overlaid for
-reference. The two smallest-tranche tick labels ($5, $5.25908) overlap at the
-left edge; this is a rendering artifact of the frozen recipe, not missing
-data.*
+*Figure 1: Send-to-spendable latency for the three tranches whose credit
+timestamps are genuine fill moments: 4m23s (`level100-1`), 3m56s
+(`level20-2`), and 5s (`full-1`). The five earlier tranches are excluded
+because their credit timestamps are recovery-time artifacts of the
+`level1-1` remediation; see Limitations.*
 
-Time from on-chain send to fiat spendable:
-
-![Fiat spendable lands within two minutes of the send](../figures/usdc_fiat_sweep_fig2_hop_latency.png)
-
-*Figure 2: Send-to-spendable latency per executed tranche; clean data points
-are 3m56s (`level20-2`), 4m23s (`level100-1`), and 5s (`full-1`). The bars
-for the first five tranches (47-72 minutes) are recovery-time artifacts of
-the `level1-1` remediation, not fill latency, and the `level1-1` value label
-clips at the right edge; see Limitations.*
-
-Figure 3 (fee decomposition) is intentionally absent: every cost component is
-zero in the records, so there is nothing to decompose (see
+Also intentionally absent: the frozen recipe's fee-decomposition figure
+(every cost component is zero, so there is nothing to decompose) and the
+recipe's fee-vs-amount chart described above (see
 [METHODOLOGY.md, Execution Deviations](../METHODOLOGY.md#execution-deviations-recorded-per-protocol-stop-and-record)).
 
 ## Latency

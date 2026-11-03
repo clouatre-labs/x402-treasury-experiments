@@ -74,21 +74,15 @@ Across all 8 executed tranches ($1, $1, $5, $5, $20, $20, $100, and the $5.25908
 
 The full written report, per-tranche record table, and reproduction commands live in [results/usdc-fiat-sweep-api.md](results/usdc-fiat-sweep-api.md).
 
-Realized fee per tranche, with the advertised fee schedule overlaid:
+The per-tranche fee result is a constant: the convert fee quoted and charged was $0.00 and the realized fee was 0.00% on all 8 executed tranches, and [Table 1 in the results report](results/usdc-fiat-sweep-api.md) states this more precisely than a chart of zeros. The fee-vs-amount chart that the frozen recipe pipeline emits is kept as a pipeline artifact under `figures/` but is not embedded here. Time from on-chain send to fiat spendable (clean tranches only):
 
-![Realized fee falls as tranche amount grows; advertised fee schedule overlaid](figures/usdc_fiat_sweep_fig1_fee_vs_amount.png)
+![Fiat lands spendable within five minutes of the send](figures/usdc_fiat_sweep_hop_latency_clean.png)
 
-*Figure 2: Realized fee per executed tranche (all 0.00%), with the advertised Coinbase fixed-fee schedule as a percentage of tranche amount overlaid for reference. The two smallest-tranche tick labels ($5, $5.25908) overlap at the left edge; this is a rendering artifact of the frozen recipe, not missing data.*
+*Figure 2: Send-to-spendable latency for the three tranches whose credit timestamps are genuine fill moments: 4m23s (`level100-1`), 3m56s (`level20-2`), and 5s (`full-1`). The five earlier tranches are excluded because their credit timestamps are recovery-time artifacts of the `level1-1` remediation; see Limitations below.*
 
-Time from on-chain send to fiat spendable:
+Also intentionally absent: the frozen recipe's fee-decomposition figure (every cost component is zero, so there is nothing to decompose) and the recipe's fee-vs-amount chart described above.
 
-![Fiat spendable lands within two minutes of the send](figures/usdc_fiat_sweep_fig2_hop_latency.png)
-
-*Figure 3: Send-to-spendable latency per executed tranche; clean data points are 3m56s (`level20-2`), 4m23s (`level100-1`), and 5s (`full-1`). The bars for the first five tranches (47-72 minutes) are recovery-time artifacts of the `level1-1` remediation, not fill latency, and the `level1-1` value label clips at the right edge; see Limitations below.*
-
-Figure 4 (fee decomposition) is intentionally absent: every cost component is zero in the records, so there is nothing to decompose.
-
-**Limitations.** (1) `timestamp_coinbase_credit`/`timestamp_fiat_spendable` for the first five tranches (`level1-1`, `level1-2`, `level20-1`, `level5-1`, `level5-2`) are recovery-time artifacts of the `level1-1` remediation (see [METHODOLOGY.md, Execution Deviations](METHODOLOGY.md#execution-deviations-recorded-per-protocol-stop-and-record)), not fill moments; latency findings rest on the three clean points in Figure 3. (2) The Figure 2 advertised-fee overlay uses the pre-execution `ADVERTISED_FIXED_FEE_USD` constant in `recipe/usdc_fiat_sweep_common.py`; the live Advanced Trade taker schedule was recorded verbatim in the raw artifacts, but the frozen recipe's overlay constant was not updated after execution. (3) This is a single-wallet, operator-executed measurement: timestamps come from the operator script rather than an independent observer, and no independent replication exists.
+**Limitations.** (1) `timestamp_coinbase_credit`/`timestamp_fiat_spendable` for the first five tranches (`level1-1`, `level1-2`, `level20-1`, `level5-1`, `level5-2`) are recovery-time artifacts of the `level1-1` remediation (see [METHODOLOGY.md, Execution Deviations](METHODOLOGY.md#execution-deviations-recorded-per-protocol-stop-and-record)), not fill moments; latency findings rest on the three clean points in Figure 2. (2) The frozen recipe's fee-vs-amount chart overlays the pre-execution `ADVERTISED_FIXED_FEE_USD` constant in `recipe/usdc_fiat_sweep_common.py`; the live Advanced Trade taker schedule was recorded verbatim in the raw artifacts, but the frozen recipe's overlay constant was not updated after execution. (3) This is a single-wallet, operator-executed measurement: timestamps come from the operator script rather than an independent observer, and no independent replication exists.
 
 ## Citing This Work
 

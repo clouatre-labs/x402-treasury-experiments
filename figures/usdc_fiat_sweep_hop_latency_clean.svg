@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="240" viewBox="0 0 640 240" role="img" aria-label="Send-to-spendable latency for the three clean tranches">
+  <style>
+    text { font-family: ui-monospace, Menlo, monospace; }
+    .title { font-size: 14px; font-weight: 600; fill: #18181b; }
+    .label { font-size: 13px; fill: #18181b; }
+    .value { font-size: 13px; fill: #18181b; }
+    .note { font-size: 12px; fill: #52525b; }
+    .mark { fill: #075985; }
+  </style>
+  <text x="320.0" y="24" text-anchor="middle" class="title">Fiat lands spendable within five minutes of the send</text>
+  <text x="216" y="57.0" text-anchor="end" class="label">level100-1 ($100)</text>
+  <rect x="226" y="40" width="318.0" height="26" rx="3" class="mark"/>
+  <text x="552.0" y="57.0" class="value">4m23s</text>
+  <text x="216" y="99.0" text-anchor="end" class="label">level20-2 ($20)</text>
+  <rect x="226" y="82" width="285.4" height="26" rx="3" class="mark"/>
+  <text x="519.4" y="99.0" class="value">3m56s</text>
+  <text x="216" y="141.0" text-anchor="end" class="label">full-1 ($5.26 residual)</text>
+  <rect x="226" y="124" width="6.0" height="26" rx="3" class="mark"/>
+  <text x="240.0" y="141.0" class="value">5s</text>
+  <text x="226" y="170" class="note">Clean tranches only: the five earlier tranches' credit</text>
+  <text x="226" y="186" class="note">timestamps are recovery-time artifacts (METHODOLOGY.md).</text>
+</svg>
