@@ -56,6 +56,11 @@ const SESSIONS_DIR = path.join(EXPERIMENT_DIR, "sessions");
 const RAW_DIR = path.join(SESSIONS_DIR, "raw");
 const FUNDING_FILE = path.join(SESSIONS_DIR, "funding.json");
 
+/** JSON.stringify that tolerates BigInt values (viem receipts contain them). */
+function jsonSafe(value: unknown): string {
+  return JSON.stringify(value, (_k, v) => (typeof v === "bigint" ? v.toString() : v), 2) + "\n";
+}
+
 const BASE_RPC = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as Address;
 const CHAIN_ID = 8453; // Base mainnet
@@ -153,7 +158,8 @@ async function cdpRequest(
   const keyId = requireEnv("CDP_API_KEY_ID");
   const keySecret = requireEnv("CDP_API_KEY_SECRET");
   const host = "api.coinbase.com"; // must match CDP_API_BASE for the JWT uri claim
-  const jwt = await cdpJwt(keyId, keySecret, method, host, requestPath);
+  // The JWT uri claim covers the path only; query parameters are excluded.
+  const jwt = await cdpJwt(keyId, keySecret, method, host, requestPath.split("?")[0]);
   const response = await fetch(`${CDP_API_BASE}${requestPath}`, {
     method,
     headers: {
@@ -504,7 +510,7 @@ function printExecutionPlan(): void {
   log("  raw responses -> sessions/raw/, records -> sessions/");
 }
 
-async function convertTranche(amount: number): Promise<{
+async function convertTranche(amount: number, rawDir?: string): Promise<{
   quote: unknown;
   fill: unknown;
   quoteId: string;
@@ -512,41 +518,110 @@ async function convertTranche(amount: number): Promise<{
   creditTimestamp: string;
   spendableTimestamp: string;
 }> {
-  const quoteResponse = (await cdpRequest("POST", "/api/v3/brokerage/convert/quote", {
-    from_account: "USDC",
-    to_account: "USD",
-    from_amount: amount.toFixed(2),
-    // USDC to USD convert is 1:1 on Coinbase; amount already in USD units.
-  })) as { convert_quote_id?: string; quote_time?: string };
-  const quoteId = quoteResponse.convert_quote_id;
+  // Convert-stage resume: a persisted fill proves quote+commit already
+  // happened; reuse it instead of quoting (which would double-convert).
+  if (rawDir && existsSync(path.join(rawDir, "convert-fill.json"))) {
+    log("  persisted convert fill found; reusing committed trade (quote/commit not re-sent)");
+    const fill = JSON.parse(readFileSync(path.join(rawDir, "convert-fill.json"), "utf8")) as Record<string, unknown>;
+    const fillTrade = (fill.trade ?? fill) as Record<string, unknown>;
+    const quoteId = (fillTrade.convert_quote_id ?? fillTrade.id) as string;
+    const fee = fillTrade.total_fee as { amount?: { value?: string | number } } | undefined;
+    const feeValue = fee?.amount?.value ?? (fillTrade.fee as string | number | undefined);
+    return {
+      quote: null,
+      fill,
+      quoteId,
+      fixedFeeUsd: feeValue === undefined || feeValue === null ? 0 : Number(feeValue),
+      creditTimestamp: (fillTrade.created_time as string | undefined) ?? (fillTrade.quote_time as string | undefined) ?? nowIso(),
+      spendableTimestamp: nowIso(),
+    };
+  }
+  // Base deposits credit to the Coinbase account with a lag, and the convert
+  // quote endpoint returns HTTP 200 with an empty trade carrying
+  // cancellation_reason ERROR_CODES_INSUFFICIENT_BALANCE when the balance has
+  // not credited yet (documented behavior: insufficient-balance failures do
+  // not use error status codes). Retry the quote in both cases instead of
+  // failing (bounded wait, no re-sends).
+  let quoteResponse: Record<string, unknown>;
+  const insufficient = (resp: Record<string, unknown>): boolean => {
+    const t = (resp.trade ?? resp) as Record<string, unknown>;
+    return !t.id && /INSUFFICIENT_BALANCE/i.test(JSON.stringify(t.cancellation_reason ?? ""));
+  };
+  let lastQuoteError: unknown = null;
+  let credited = false;
+  for (let attempt = 0; attempt < 40; attempt++) {
+    try {
+      quoteResponse = (await cdpRequest("POST", "/api/v3/brokerage/convert/quote", {
+        from_account: "USDC",
+        to_account: "USD",
+        amount: amount.toFixed(2),
+        // USDC to USD convert is 1:1 on Coinbase; amount already in USD units.
+      })) as Record<string, unknown>;
+    } catch (err) {
+      if (/INSUFFICIENT_BALANCE/i.test(err instanceof Error ? err.message : String(err))) {
+        lastQuoteError = err;
+        await new Promise((resolve) => setTimeout(resolve, 30000));
+        continue;
+      }
+      throw err;
+    }
+    if (insufficient(quoteResponse)) {
+      log(`  deposit not credited yet (attempt ${attempt + 1}/40); waiting 30s before re-quoting`);
+      await new Promise((resolve) => setTimeout(resolve, 30000));
+      continue;
+    }
+    credited = true;
+    break;
+  }
+  if (!credited) {
+    throw (lastQuoteError ?? new Error("convert quote did not succeed within the deposit-credit wait window"));
+  }
+  // The API wraps the payload in a `trade` object; tolerate both shapes.
+  const quoteTrade = (quoteResponse.trade ?? quoteResponse) as Record<string, unknown>;
+  const quoteId = (quoteTrade.convert_quote_id ?? quoteTrade.id) as string | undefined;
   if (!quoteId) {
     throw new Error(`convert quote response missing convert_quote_id: ${JSON.stringify(quoteResponse)}`);
   }
-  const tradeResponse = (await cdpRequest("POST", `/api/v3/brokerage/convert/trade/${quoteId}`, {})) as Record<string, unknown>;
+  // Persist the quote immediately to narrow the crash window between quote
+  // and commit (a committed-but-unrecorded trade cannot be safely re-quoted).
+  if (rawDir) writeFileSync(path.join(rawDir, "convert-quote.json"), jsonSafe(quoteResponse));
+  const tradeResponse = (await cdpRequest("POST", `/api/v3/brokerage/convert/trade/${quoteId}`, {
+    trade_id: quoteId,
+    from_account: "USDC",
+    to_account: "USD",
+  })) as Record<string, unknown>;
   let fill: unknown = tradeResponse;
   let spendableTimestamp = nowIso();
+  // Persist the committed trade immediately (crash window: commit done,
+  // status unknown).
+  if (rawDir) writeFileSync(path.join(rawDir, "convert-fill.json"), jsonSafe(fill));
   // Poll the convert trade until it is filled (bounded).
   for (let attempt = 0; attempt < 30; attempt++) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    fill = await cdpRequest("GET", `/api/v3/brokerage/convert/trade/${quoteId}`);
-    const status = (fill as { status?: string }).status;
-    if (status === "COMPLETE" || status === "FILLED" || status === "SUCCESS") {
+    fill = await cdpRequest(
+      "GET",
+      `/api/v3/brokerage/convert/trade/${quoteId}?from_account=USDC&to_account=USD`,
+    );
+    const fillTrade = ((fill as Record<string, unknown>).trade ?? fill) as { status?: string };
+    if (typeof fillTrade.status === "string" && /COMPLETE|FILLED|SUCCESS/i.test(fillTrade.status)) {
       spendableTimestamp = nowIso();
       break;
     }
-    if (typeof status === "string" && /FAIL|CANCEL|EXPIRE/i.test(status)) {
-      throw new Error(`convert trade ${quoteId} reached terminal failure status ${status}`);
+    if (typeof fillTrade.status === "string" && /FAIL|CANCEL|EXPIRE/i.test(fillTrade.status)) {
+      throw new Error(`convert trade ${quoteId} reached terminal failure status ${fillTrade.status}`);
     }
   }
-  // The quoted fee is captured verbatim from the quote response.
-  const feeValue = (quoteResponse as { fee?: string | number }).fee;
-  const fixedFeeUsd = feeValue === undefined ? 0 : Number(feeValue);
+  // The quoted fee is captured verbatim from the quote response. The trade
+  // object nests the absolute fee as total_fee.amount.value.
+  const quoteFee = quoteTrade.total_fee as { amount?: { value?: string | number } } | undefined;
+  const feeValue = quoteFee?.amount?.value ?? (quoteTrade.fee as string | number | undefined);
+  const fixedFeeUsd = feeValue === undefined || feeValue === null ? 0 : Number(feeValue);
   return {
     quote: quoteResponse,
     fill,
     quoteId,
     fixedFeeUsd,
-    creditTimestamp: quoteResponse.quote_time ?? nowIso(),
+    creditTimestamp: (quoteTrade.quote_time as string | undefined) ?? nowIso(),
     spendableTimestamp,
   };
 }
@@ -558,6 +633,11 @@ async function executeTranche(
   depositAddress: Address,
 ): Promise<void> {
   log(`--- ${tranche.id} ---`);
+  const recordFile = path.join(SESSIONS_DIR, `${tranche.id}.json`);
+  if (existsSync(recordFile)) {
+    log(`${tranche.id}: record already written; skipping (no re-runs)`);
+    return;
+  }
   const balance = await receiverUsdcBalance(receiverAddress());
   const amount =
     tranche.amountUsdc === null ? balance : tranche.amountUsdc;
@@ -590,50 +670,64 @@ async function executeTranche(
     log(`Wrote pre-registered not_executed record for ${tranche.id}`);
     return;
   }
-  if (amount <= 0) {
-    throw new Error(`${tranche.id}: receiver balance ${balance} cannot fund tranche amount ${amount}`);
-  }
-  if (tranche.amountUsdc !== null && balance + 1e-9 < tranche.amountUsdc) {
-    throw new Error(
-      `${tranche.id}: receiver USDC balance ${balance} is below tranche amount ${tranche.amountUsdc}; refusing to execute`,
-    );
-  }
-
-  // Hop 1: on-chain send (Base mainnet), locally signed.
-  const midFetch = await fetchUsdcMid();
-  const amountUnits = parseUnits(amount.toFixed(6), 6);
-  const client = publicClient();
-  log(`${tranche.id}: sending ${amount} USDC to ${depositAddress} ...`);
-  const txHash = await walletClient.writeContract({
-    address: USDC_BASE,
-    abi: erc20Abi,
-    functionName: "transfer",
-    args: [depositAddress, amountUnits],
-    chain: base,
-    account: walletClient.account!, 
-  });
-  const sentTimestamp = nowIso();
-  const receipt = await client.waitForTransactionReceipt({ hash: txHash });
-  if (receipt.status !== "success") {
-    throw new Error(`${tranche.id}: on-chain transfer reverted: ${txHash}`);
-  }
-  log(`${tranche.id}: on-chain transfer confirmed: ${txHash}`);
-
-  // Persist raw response before any derived work.
+  // Hop 1: on-chain send (Base mainnet), locally signed. On post-crash resume,
+  // a persisted receipt proves hop 1 already executed; skip the send (no re-runs).
   const rawDir = path.join(RAW_DIR, tranche.id);
-  mkdirSync(rawDir, { recursive: true });
-  writeFileSync(path.join(rawDir, "tx-receipt.json"), JSON.stringify(receipt, null, 2) + "\n");
+  const receiptFile = path.join(rawDir, "tx-receipt.json");
+  const alreadySent = existsSync(receiptFile);
+  // Balance sufficiency applies only to a fresh send; on a resume run the
+  // funds have already departed the receiver legitimately.
+  if (!alreadySent) {
+    if (amount <= 0) {
+      throw new Error(`${tranche.id}: receiver balance ${balance} cannot fund tranche amount ${amount}`);
+    }
+    if (tranche.amountUsdc !== null && balance + 1e-9 < tranche.amountUsdc) {
+      throw new Error(
+        `${tranche.id}: receiver USDC balance ${balance} is below tranche amount ${tranche.amountUsdc}; refusing to execute`,
+      );
+    }
+  }
+  let txHash: string;
+  let sentTimestamp: string;
+  const midFetch = await fetchUsdcMid();
+  let receipt: { status: unknown; transactionHash: string; gasUsed?: bigint; blockNumber?: string };
+  if (alreadySent) {
+    log(`${tranche.id}: persisted tx receipt found; resuming from convert hop (hop 1 not re-sent)`);
+    receipt = JSON.parse(readFileSync(receiptFile, "utf8"));
+    if (typeof receipt.gasUsed === "string") receipt.gasUsed = BigInt(receipt.gasUsed);
+    txHash = receipt.transactionHash;
+    const block = await publicClient().getBlock({ blockNumber: BigInt(receipt.blockNumber as string) });
+    sentTimestamp = new Date(Number(block.timestamp) * 1000).toISOString();
+  } else {
+    const amountUnits = parseUnits(amount.toFixed(6), 6);
+    const client = publicClient();
+    log(`${tranche.id}: sending ${amount} USDC to ${depositAddress} ...`);
+    txHash = await walletClient.writeContract({
+      address: USDC_BASE,
+      abi: erc20Abi,
+      functionName: "transfer",
+      args: [depositAddress, amountUnits],
+      chain: base,
+      account: walletClient.account!,
+    });
+    sentTimestamp = nowIso();
+    receipt = await client.waitForTransactionReceipt({ hash: txHash });
+    if (receipt.status !== "success") {
+      throw new Error(`${tranche.id}: on-chain transfer reverted: ${txHash}`);
+    }
+    log(`${tranche.id}: on-chain transfer confirmed: ${txHash}`);
+
+    // Persist raw response before any derived work.
+    mkdirSync(rawDir, { recursive: true });
+    writeFileSync(path.join(rawDir, "tx-receipt.json"), jsonSafe(receipt));
+  }
 
   // Hop 2/3: convert quote + fill via Advanced Trade API.
-  const convert = await convertTranche(amount);
-  writeFileSync(
-    path.join(rawDir, "convert-quote.json"),
-    JSON.stringify(convert.quote, null, 2) + "\n",
-  );
-  writeFileSync(
-    path.join(rawDir, "convert-fill.json"),
-    JSON.stringify(convert.fill, null, 2) + "\n",
-  );
+  const convert = await convertTranche(amount, rawDir);
+  // Raw artifacts were persisted inside convertTranche at each stage; write
+  // the final pair only for what was not already on disk.
+  if (convert.quote !== null) writeFileSync(path.join(rawDir, "convert-quote.json"), jsonSafe(convert.quote));
+  writeFileSync(path.join(rawDir, "convert-fill.json"), jsonSafe(convert.fill));
 
   const networkFeeUsd = 0; // Base sweeps are gasless for ERC20 transfer only when sponsored; recorded verbatim if nonzero
   const gasUsed = receipt.gasUsed;
@@ -684,7 +778,13 @@ async function modeExecute(): Promise<void> {
   const receiver = receiverAddress();
   const preBalance = await receiverUsdcBalance(receiver);
   const funding = JSON.parse(readFileSync(FUNDING_FILE, "utf8")) as { funding_tx_hash: string };
-  if (preBalance < 100) {
+  // The $100 check only applies before level100-1's send; once that transfer
+  // is persisted (receipt on disk) the balance requirement no longer applies
+  // and a resume run must not be blocked by the already-departed funds.
+  const level100 = TRANCHES.find((t) => t.id === "level100-1");
+  const level100AlreadySent =
+    level100 !== undefined && existsSync(path.join(RAW_DIR, level100.id, "tx-receipt.json"));
+  if (preBalance < 100 && !level100AlreadySent) {
     die(
       `receiver USDC balance ${preBalance} is below the $100 tranche requirement; confirm the funding transfer landed before executing`,
     );

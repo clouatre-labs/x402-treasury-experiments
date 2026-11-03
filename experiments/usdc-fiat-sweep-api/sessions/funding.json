@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "experiment": "usdc-fiat-sweep-api",
+  "synthetic": false,
+  "funding_tx_hash": "0xbc152ba40d8272ffbcfca2ffc38d476c32f3bb3bac15321336c347acc8b176fa",
+  "usdc_buy_amount_usd": 172.28,
+  "eth_buy_amount": 0.00014,
+  "buy_quote_note": "172.28 USDC bought via three CAD conversions (71.16+71.12+30.00, fees included in 230.00 CAD spent); 155.00 USDC + 0.00014 ETH funded to receiver (USDC tx 0xbc152ba4...76fa, ETH tx 0x011542a9...15c7a); second send of 7.16 USDC left treasury; on-chain treasury USDC is 155.00",
+  "recorded_at": "2026-11-03T15:00:38+00:00"
+}

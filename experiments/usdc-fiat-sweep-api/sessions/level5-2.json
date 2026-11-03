@@ -1,0 +1,23 @@
+{
+  "tranche_id": "level5-2",
+  "replicate": 2,
+  "executed": true,
+  "synthetic": false,
+  "amount_usdc": 5,
+  "tx_hash_in": "0x9627d4a3715726b44f1db9c8bab79bdcf4a2e2f5bbd9b457dc539f3dce4e4c20",
+  "deposit_address": "0x70939E594482433336BFEA908ED3043AD33b67b7",
+  "convert_quote_id": "23776ea2-b28b-4aa1-ac48-82e67fa4dc32",
+  "usdc_mid": 1,
+  "mid_observed_at": "2026-11-03T16:23:15+00:00",
+  "timestamp_sent": "2026-11-03T15:36:21.000Z",
+  "timestamp_coinbase_credit": "2026-11-03T16:23:15+00:00",
+  "timestamp_fiat_spendable": "2026-11-03T16:23:15+00:00",
+  "fiat_received": 5,
+  "funding_tx_hash": "0xbc152ba40d8272ffbcfca2ffc38d476c32f3bb3bac15321336c347acc8b176fa",
+  "network_fee_usd": 0,
+  "fixed_fee_usd": 0,
+  "quoted_fee_usd": 0,
+  "realized_fee_pct": 0,
+  "spread_vs_mid_pct": 0,
+  "notes": "Base gas for sweep leg paid in ETH; raw receipt in sessions/raw/level5-2/tx-receipt.json"
+}

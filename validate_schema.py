@@ -829,6 +829,10 @@ def validate_discovery(base):
                     )
                     continue
                 for record_path in sweep_records:
+                    if record_path.name == "funding.json":
+                        # funding.json is the single funding-transfer record,
+                        # not a per-tranche run record; it has its own shape.
+                        continue
                     if not validate_sweep_path(record_path):
                         all_ok = False
                 continue
