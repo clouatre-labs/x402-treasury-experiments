@@ -44,3 +44,19 @@ Each experiment enumerates its own threats in `protocol.md`. Recurring ones:
 - Observer knowledge of the comparator before execution; the pre-registration seal is on the outcome, not on comparator knowledge.
 - Comparator drift between pre-registration and execution; the comparator is recorded at execution time.
 - Slippage and spread that are part of the measured quantity, not noise.
+
+## Execution Deviations (recorded, per protocol "stop and record")
+
+- 2026-11-03, tranche `level1-1`: the on-chain USDC transfer succeeded (tx
+  `0xed5eaf0af7c22c1215dcdacbf6526d9f5ef8274f9fed98af8b4b696dd6c51166`, verified on Base mainnet) but the script crashed before writing any
+  record or raw artifact (`JSON.stringify` cannot serialize the `BigInt` values in a viem transaction receipt). Tranches 2-9 never started.
+  Remediation before resuming the single pass: (1) the genuine receipt was
+  recovered verbatim from a Base RPC `eth_getTransactionReceipt` call into
+  `sessions/raw/level1-1/tx-receipt.json`; (2) `sweep.ts` was patched to use
+  BigInt-safe JSON serialization and to skip the on-chain transfer for any
+  tranche whose persisted receipt already exists (resume-from-convert-hop), so
+  `level1-1` is not re-sent. Net effect on the measurement: `level1-1`'s
+  `timestamp_sent` is derived from its confirmed block timestamp (second
+  precision) rather than a local wall-clock send timestamp; all other
+  endpoints are unchanged. No tranche was re-run; the pass continued in
+  ascending order with fresh quote/mid observations at convert time.

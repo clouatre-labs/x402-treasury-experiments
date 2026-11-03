@@ -56,6 +56,11 @@ const SESSIONS_DIR = path.join(EXPERIMENT_DIR, "sessions");
 const RAW_DIR = path.join(SESSIONS_DIR, "raw");
 const FUNDING_FILE = path.join(SESSIONS_DIR, "funding.json");
 
+/** JSON.stringify that tolerates BigInt values (viem receipts contain them). */
+function jsonSafe(value: unknown): string {
+  return JSON.stringify(value, (_k, v) => (typeof v === "bigint" ? v.toString() : v), 2) + "\n";
+}
+
 const BASE_RPC = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as Address;
 const CHAIN_ID = 8453; // Base mainnet
@@ -599,41 +604,49 @@ async function executeTranche(
     );
   }
 
-  // Hop 1: on-chain send (Base mainnet), locally signed.
-  const midFetch = await fetchUsdcMid();
-  const amountUnits = parseUnits(amount.toFixed(6), 6);
-  const client = publicClient();
-  log(`${tranche.id}: sending ${amount} USDC to ${depositAddress} ...`);
-  const txHash = await walletClient.writeContract({
-    address: USDC_BASE,
-    abi: erc20Abi,
-    functionName: "transfer",
-    args: [depositAddress, amountUnits],
-    chain: base,
-    account: walletClient.account!, 
-  });
-  const sentTimestamp = nowIso();
-  const receipt = await client.waitForTransactionReceipt({ hash: txHash });
-  if (receipt.status !== "success") {
-    throw new Error(`${tranche.id}: on-chain transfer reverted: ${txHash}`);
-  }
-  log(`${tranche.id}: on-chain transfer confirmed: ${txHash}`);
-
-  // Persist raw response before any derived work.
+  // Hop 1: on-chain send (Base mainnet), locally signed. On post-crash resume,
+  // a persisted receipt proves hop 1 already executed; skip the send (no re-runs).
   const rawDir = path.join(RAW_DIR, tranche.id);
-  mkdirSync(rawDir, { recursive: true });
-  writeFileSync(path.join(rawDir, "tx-receipt.json"), JSON.stringify(receipt, null, 2) + "\n");
+  const receiptFile = path.join(rawDir, "tx-receipt.json");
+  let txHash: string;
+  let sentTimestamp: string;
+  const midFetch = await fetchUsdcMid();
+  let receipt: { status: unknown; transactionHash: string; gasUsed?: bigint; blockNumber?: string };
+  if (existsSync(receiptFile)) {
+    log(`${tranche.id}: persisted tx receipt found; resuming from convert hop (hop 1 not re-sent)`);
+    receipt = JSON.parse(readFileSync(receiptFile, "utf8"));
+    if (typeof receipt.gasUsed === "string") receipt.gasUsed = BigInt(receipt.gasUsed);
+    txHash = receipt.transactionHash;
+    const block = await publicClient().getBlock({ blockNumber: BigInt(receipt.blockNumber as string) });
+    sentTimestamp = new Date(Number(block.timestamp) * 1000).toISOString();
+  } else {
+    const amountUnits = parseUnits(amount.toFixed(6), 6);
+    const client = publicClient();
+    log(`${tranche.id}: sending ${amount} USDC to ${depositAddress} ...`);
+    txHash = await walletClient.writeContract({
+      address: USDC_BASE,
+      abi: erc20Abi,
+      functionName: "transfer",
+      args: [depositAddress, amountUnits],
+      chain: base,
+      account: walletClient.account!,
+    });
+    sentTimestamp = nowIso();
+    receipt = await client.waitForTransactionReceipt({ hash: txHash });
+    if (receipt.status !== "success") {
+      throw new Error(`${tranche.id}: on-chain transfer reverted: ${txHash}`);
+    }
+    log(`${tranche.id}: on-chain transfer confirmed: ${txHash}`);
+
+    // Persist raw response before any derived work.
+    mkdirSync(rawDir, { recursive: true });
+    writeFileSync(path.join(rawDir, "tx-receipt.json"), jsonSafe(receipt));
+  }
 
   // Hop 2/3: convert quote + fill via Advanced Trade API.
   const convert = await convertTranche(amount);
-  writeFileSync(
-    path.join(rawDir, "convert-quote.json"),
-    JSON.stringify(convert.quote, null, 2) + "\n",
-  );
-  writeFileSync(
-    path.join(rawDir, "convert-fill.json"),
-    JSON.stringify(convert.fill, null, 2) + "\n",
-  );
+  writeFileSync(path.join(rawDir, "convert-quote.json"), jsonSafe(convert.quote));
+  writeFileSync(path.join(rawDir, "convert-fill.json"), jsonSafe(convert.fill));
 
   const networkFeeUsd = 0; // Base sweeps are gasless for ERC20 transfer only when sponsored; recorded verbatim if nonzero
   const gasUsed = receipt.gasUsed;
