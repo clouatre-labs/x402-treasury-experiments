@@ -1,0 +1,23 @@
+{
+  "tranche_id": "full-2",
+  "replicate": 2,
+  "executed": false,
+  "synthetic": false,
+  "amount_usdc": null,
+  "tx_hash_in": null,
+  "deposit_address": null,
+  "convert_quote_id": null,
+  "usdc_mid": null,
+  "mid_observed_at": null,
+  "timestamp_sent": null,
+  "timestamp_coinbase_credit": null,
+  "timestamp_fiat_spendable": null,
+  "fiat_received": null,
+  "funding_tx_hash": "0xbc152ba40d8272ffbcfca2ffc38d476c32f3bb3bac15321336c347acc8b176fa",
+  "network_fee_usd": null,
+  "fixed_fee_usd": 0,
+  "quoted_fee_usd": 0,
+  "realized_fee_pct": null,
+  "spread_vs_mid_pct": null,
+  "notes": "pre-registered not_executed reason: single-balance wallet: the full-balance tranche by definition exhausts the residual, so it has one executable replicate"
+}
