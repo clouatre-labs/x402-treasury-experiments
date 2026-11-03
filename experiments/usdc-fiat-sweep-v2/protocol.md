@@ -1,15 +1,15 @@
 # Protocol: usdc-fiat-sweep-v2 (DRAFT - externally reviewed, redesigned, ready to re-seal)
 
-> **STATUS: DRAFT.** This protocol supersedes the previous v2 draft (4 arms,
-> ~$3,270 working capital) after a KISS/cost re-review. The original Gemini
-> review (approve-with-revisions, 8-point verdict) was applied to that draft;
-> this redesign keeps every structural review fix (mechanical latency
-> exclusion rules, provider selection criteria, network parity, dry-run
-> before seal, descriptive-only latency) and re-scopes the measurement to
-> micro-volume sweeps, which match the actual x402 treasury pattern: revenue
-> arrives as micro-receipts and is swept as small accumulated balances.
-> Nothing in this file authorizes execution yet. On sealing, this notice is
-> removed and the stop-and-record clauses of
+> **STATUS: DRAFT — redesigned and delta-reviewed (approve-with-revisions,
+> all four revisions incorporated), ready to seal.** This protocol supersedes
+> the earlier 4-arm/$3,270 draft after a KISS/cost re-review; the delta
+> review of the micro-volume redesign approved with four revisions, all
+> applied here: claim scope restricted to $5-$20 programmatic micro-receipt
+> sweeps, exact residue-sweep formula with below-minimum guard,
+> `rejected_below_minimum`/`not_executed_below_minimum` failure
+> classifications, and an ACH-minimum preflight check. Claims are valid only
+> at micro scale; see Claim scope. Nothing in this file authorizes execution
+> yet. On sealing, this notice is removed and the stop-and-record clauses of
 > [METHODOLOGY.md](../../METHODOLOGY.md) apply.
 
 ## Motivation
@@ -33,11 +33,19 @@ conversion when real revenue volume justifies it).
 
 - Q1: What do independent providers (non-issuer rails) actually charge to
   convert micro USDC balances to fiat, realized vs advertised? (cross-provider arm)
-- Q2: What does bank disbursement add in cost and latency after the exchange
-  ledger, and how do exchange fees separate from bank deductions?
-  (disbursement arm)
+- Q2: What does ACH disbursement add in cost and latency after the exchange
+  ledger, and how do exchange fees separate from receiving-bank deductions
+  on the ACH rail? (disbursement arm)
 - Q3: Is v1's zero fee stable at micro volumes on the same Coinbase rail?
   (continuity arm)
+
+## Claim scope (fixed)
+
+All claims in this experiment are restricted to programmatic micro-receipt
+off-ramps at $5-$20 scale for automated agent/API workflows. The design does
+not speak to treasury off-ramping at institutional volumes, order-book
+depth, batch-vs-real-time settlement tradeoffs, or fiat off-ramp cost in
+general; those questions require different designs and are out of scope.
 
 ## Design
 
@@ -50,12 +58,33 @@ quote/rate-card APIs at execution time.
 
 | Arm | Provider/rail | Tranches | Endpoints |
 |-----|---------------|----------|-----------|
-| A: cross-provider | two independent providers selected before sealing, restricted strictly to rails supporting native USDC deposits on Base (candidates: Dexter, Kraken; final selection recorded in the sealed runbook with verbatim fee-schedule snapshot) | $10 x1 each, then one residue sweep per provider (accumulated remainder, pre-registered formula: whatever the deposit leaves) | realized fee, quoted fee, spread vs mid, realized slippage vs quoted price (broker/AMM rails), per-hop latency |
+| A: cross-provider | two independent providers selected before sealing, restricted strictly to rails supporting native USDC deposits on Base (candidates: Dexter, Kraken; final selection recorded in the sealed runbook with verbatim fee-schedule snapshot) | $10 x1 each, then one residue sweep per provider, defined exactly as `amount = balance_provider_usdc_spendable` at sweep time, with the guard below | realized fee, quoted fee, spread vs mid, realized slippage vs quoted price (broker/AMM rails), per-hop latency |
 | B: disbursement | exchange USD ledger -> external bank account via ACH, from one Arm A provider chosen at sealing | $20 x1 | exchange-quoted disbursement fee, external bank/intermediary deduction, net settled amount, hold/arrival latency |
 | C: continuity | Coinbase Advanced Trade convert (Base deposit), v1 rail | $5 x2 | realized fee, quoted fee, spread vs mid, per-hop latency |
 
 Total planned conversions: 7 (one pass, ascending order within arms;
 no tranche re-run). `not_executed` outcomes are recorded, never retried.
+
+### Residue-sweep guard (fixed formula)
+
+Let `amount_residue = balance_provider_usdc_spendable` (the provider's
+spendable USDC balance at sweep time, exactly as reported by its API — not
+gross deposited, not net-of-anticipated-fees). If
+`amount_residue >= provider_min_trade_amount` (the provider's documented
+minimum trade size, snapshotted at sealing), execute the convert for
+`amount_residue`. If `amount_residue < provider_min_trade_amount`, record
+the tranche as `not_executed_below_minimum` with the observed residual
+balance and the provider threshold verbatim; this is a recorded outcome,
+not a failure exception, and the pass continues.
+
+### Platform-minimum handling (sealed rule)
+
+If any API rejects a conversion or disbursement because the amount is below
+a platform minimum (trade minimum, withdrawal minimum, or equivalent), the
+script records the error response verbatim, sets
+`execution_status = "rejected_below_minimum"`, and proceeds to the next
+tranche without halting the runbook. A minimum rejection is a valid
+cost-surface observation, not an execution fault.
 
 ### Working capital and cost budget
 
@@ -83,7 +112,8 @@ censoring rule.
 - Endpoint definitions and the extended record schema (extends
   [DATA_DICTIONARY.md](../../DATA_DICTIONARY.md) with `provider_slug`,
   `arm`, `execution_status` (enum: `clean_fill`, `network_timeout`,
-  `api_error`, `operator_interrupted`, `partial_fill`), `is_latency_valid`
+  `api_error`, `operator_interrupted`, `partial_fill`,
+  `rejected_below_minimum`, `not_executed_below_minimum`), `is_latency_valid`
   (boolean, see Statistical stance), `quoted_slippage_max` and
   `realized_slippage` (broker/AMM rails), `exchange_disbursement_fee_usd`,
   `external_bank_intermediary_fee_usd`, `net_amount_settled_usd`)
@@ -141,9 +171,11 @@ networks, providers, or volume tiers.
    session as the original v2 review); incorporate or rebut findings
 2. Finalize provider selection (verify Base-deposit support per criterion 1),
    fee-schedule snapshots, and extended schema; update DATA_DICTIONARY.md and
-   `validate_schema.py`; run the mock dry-run (non-transacting script
-   verification and sandbox/zero-value API ping) so code correctness is
-   proven BEFORE anything is frozen
+   `validate_schema.py`; run the preflight checklist, which must verify that
+   the chosen disbursement provider's published minimum ACH withdrawal
+   amount is <= the planned $20 test tranche; then run the mock dry-run
+   (non-transacting script verification and sandbox/zero-value API ping) so
+   code correctness is proven BEFORE anything is frozen
 3. Seal: commit protocol, schemas, and frozen recipes; freeze repository
    state; remove the DRAFT notice
 4. Live execution pass only — the single transacting pass; preflight checks
@@ -154,6 +186,8 @@ networks, providers, or volume tiers.
 ## Acceptance criteria
 
 - [ ] Delta review findings addressed or rebutted in this file before sealing
+      (all four applied: claim-scope restriction, residue formula and guard,
+      platform-minimum failure classification, ACH-minimum preflight check)
 - [ ] Provider fee schedules snapshotted verbatim before first conversion
 - [ ] All conversions one pass, ascending, no re-runs; failures recorded with
       `execution_status` and `is_latency_valid` set programmatically
