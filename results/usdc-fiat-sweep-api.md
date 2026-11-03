@@ -16,8 +16,10 @@ the Coinbase Advanced Trade convert API, the convert fee quoted and charged
 was $0.00, the realized fee was 0.00%, and the USD spread against the $1.00
 USDC mid was 0%: each tranche converted 1:1 into fiat (`fiat_received` equals
 `amount_usdc` in every record). The only realized cost of the sweep was Base
-gas for the eight on-chain transfer legs, paid from the 0.00014 ETH float
-seeded at funding (approximately $0.31). The pre-registered ninth tranche
+gas for the eight on-chain transfer legs: total gas spent was 0.00000654
+ETH (summed from the committed transaction receipts), under 5% of the
+0.00014 ETH float seeded at funding (approximately $0.31). The
+pre-registered ninth tranche
 (`full-2`) was recorded as `not_executed`: a single-balance wallet has no
 residual balance after `full-1` runs.
 
@@ -130,6 +132,6 @@ rsvg-convert -z 2 -b '#ffffff' \
 
 ## Cite
 
-See [CITATION.cff](../CITATION.cff). Dataset archived at Zenodo:
-[10.5281/zenodo.23927459](https://doi.org/10.5281/zenodo.23927459)
-(all versions: [10.5281/zenodo.23927458](https://doi.org/10.5281/zenodo.23927458)).
+See [CITATION.cff](../CITATION.cff). Dataset archived at Zenodo (concept
+DOI): [10.5281/zenodo.23927458](https://doi.org/10.5281/zenodo.23927458);
+latest version: [10.5281/zenodo.23929259](https://doi.org/10.5281/zenodo.23929259).

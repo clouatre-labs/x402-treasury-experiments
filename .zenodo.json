@@ -1,6 +1,6 @@
 {
   "title": "x402 Treasury Experiments",
-  "description": "Pre-registered measurements of the cost and friction of converting accumulated L2 USDC micropayment revenue into spendable fiat. Each experiment is committed before it runs: a protocol and operator runbook are fixed in git, raw observations are collected verbatim into sessions, and the analyzed record validates against a published schema. The usdc-fiat-sweep-api experiment (v1.0.1) converted 8 tranches totaling $157.25908 USDC to USD via the Coinbase Advanced Trade convert API: the convert fee quoted and charged was $0.00, the realized fee was 0.00%, and the USD spread was 0% on every tranche from $1 to the full wallet balance; the only realized cost was Base gas (~$0.31). Includes the pre-registered protocol and runbook, the 9 run records (8 executed, 1 pre-registered not_executed) with verbatim raw API artifacts, the frozen figure recipes, and figures 1-2 (figure 3, fee decomposition, is intentionally absent because every cost component is zero).",
+  "description": "Pre-registered measurements of the cost and friction of converting accumulated L2 USDC micropayment revenue into spendable fiat. Each experiment is committed before it runs: a protocol and operator runbook are fixed in git, raw observations are collected verbatim into sessions, and the analyzed record validates against a published schema. The usdc-fiat-sweep-api experiment converted 8 tranches totaling USD 157.25908 to USD via the Coinbase Advanced Trade convert API: the convert fee quoted and charged was USD 0.00, the realized fee was 0.00%, and the USD spread was 0% on every tranche from 1 to the full wallet balance; the only realized cost was Base gas, 0.00000654 ETH spent from a 0.00014 ETH (approximately USD 0.31) funding float. On-chain transfer values were verified against Base mainnet at wei precision. Includes the pre-registered protocol and runbook, the 9 run records (8 executed, 1 pre-registered not_executed) with verbatim raw API artifacts, the frozen figure recipes, and the figures (the fee-decomposition figure is intentionally absent because every cost component is zero).",
   "upload_type": "dataset",
   "access_right": "open",
   "license": "Apache-2.0",
@@ -9,8 +9,8 @@
   "publication_date": "2026-11-03",
   "creators": [
     {
-      "name": "Clouâtre, Hugues",
-      "affiliation": "Université de Bordeaux",
+      "name": "Clou\u00e2tre, Hugues",
+      "affiliation": "Universit\u00e9 de Bordeaux",
       "orcid": "0009-0002-4291-1999"
     }
   ],
