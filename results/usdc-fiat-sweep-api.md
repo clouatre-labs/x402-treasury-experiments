@@ -38,18 +38,23 @@ residual balance after `full-1` runs.
 
 Realized fee per tranche, with the advertised fee schedule overlaid:
 
-![Realized fee falls as tranche amount grows; advertised fee schedule overlaid](../figures/usdc_fiat_sweep_fig1_fee_vs_amount.svg)
+![Realized fee falls as tranche amount grows; advertised fee schedule overlaid](../figures/usdc_fiat_sweep_fig1_fee_vs_amount.png)
 
 *Figure 1: Realized fee per executed tranche (all 0.00%), with the advertised
 Coinbase fixed-fee schedule as a percentage of tranche amount overlaid for
-reference.*
+reference. The two smallest-tranche tick labels ($5, $5.25908) overlap at the
+left edge; this is a rendering artifact of the frozen recipe, not missing
+data.*
 
 Time from on-chain send to fiat spendable:
 
-![Fiat spendable lands within two minutes of the send](../figures/usdc_fiat_sweep_fig2_hop_latency.svg)
+![Fiat spendable lands within two minutes of the send](../figures/usdc_fiat_sweep_fig2_hop_latency.png)
 
 *Figure 2: Send-to-spendable latency per executed tranche; clean data points
-are 3m56s (`level20-2`), 4m23s (`level100-1`), and 5s (`full-1`).*
+are 3m56s (`level20-2`), 4m23s (`level100-1`), and 5s (`full-1`). The bars
+for the first five tranches (47-72 minutes) are recovery-time artifacts of
+the `level1-1` remediation, not fill latency, and the `level1-1` value label
+clips at the right edge; see Limitations.*
 
 Figure 3 (fee decomposition) is intentionally absent: every cost component is
 zero in the records, so there is nothing to decompose (see
@@ -112,6 +117,20 @@ representation 157.25907999999998), max realized fee 0. On-chain measurements
 cannot be re-run (single pre-registered pass, no re-runs); the figures and
 summary statistics regenerate deterministically from the committed session
 records.
+
+The canonical figure format is SVG, written by the frozen recipes; the PNG
+files embedded above are presentation renders of those SVGs (white
+background for dark-theme legibility) and regenerate deterministically
+alongside:
+
+```bash
+rsvg-convert -z 2 -b '#ffffff' \
+  -o figures/usdc_fiat_sweep_fig1_fee_vs_amount.png \
+  figures/usdc_fiat_sweep_fig1_fee_vs_amount.svg
+rsvg-convert -z 2 -b '#ffffff' \
+  -o figures/usdc_fiat_sweep_fig2_hop_latency.png \
+  figures/usdc_fiat_sweep_fig2_hop_latency.svg
+```
 
 ## Cite
 
