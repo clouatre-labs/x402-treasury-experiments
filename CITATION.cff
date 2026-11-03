@@ -6,6 +6,14 @@ authors:
   - family-names: "Clouâtre"
     given-names: "Hugues"
     orcid: "https://orcid.org/0009-0002-4291-1999"
+    affiliation: "Université de Bordeaux"
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.23927458
+    description: Zenodo dataset DOI (all versions)
+  - type: doi
+    value: 10.5281/zenodo.23927459
+    description: Zenodo dataset DOI (version 1.0.1)
 repository-code: https://github.com/clouatre-labs/x402-treasury-experiments
 license: Apache-2.0
 date-released: "2026-11-03"
