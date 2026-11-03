@@ -12,8 +12,8 @@ identifiers:
     value: 10.5281/zenodo.23927458
     description: Zenodo dataset DOI (all versions)
   - type: doi
-    value: 10.5281/zenodo.23927459
-    description: Zenodo dataset DOI (this version)
+    value: 10.5281/zenodo.23929259
+    description: Zenodo dataset DOI (v1.0.3)
 repository-code: https://github.com/clouatre-labs/x402-treasury-experiments
 license: Apache-2.0
 date-released: "2026-11-03"
@@ -25,7 +25,8 @@ abstract: >
   $157.25908 USDC to USD via the Coinbase Advanced Trade convert API:
   the convert fee quoted and charged was $0.00, the realized fee was 0.00%,
   and the USD spread was 0% on every tranche from $1 to the full wallet
-  balance; the only realized cost was Base gas (~$0.31). Figure 3 (fee
+  balance; the only realized cost was Base gas, 0.00000654 ETH spent from a
+  0.00014 ETH (approximately $0.31) funding float. Figure 3 (fee
   decomposition) is intentionally absent because every cost component is
   zero.
 keywords:

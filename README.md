@@ -2,7 +2,7 @@
   <a href="https://conventionalcommits.org"><img alt="Conventional Commits" src="https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg?style=for-the-badge" height="20"></a>
   <a href="https://github.com/clouatre-labs/x402-treasury-experiments/blob/main/LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge" height="20"></a>
   <img alt="result-fee_0.00%25_spread_0%25" src="https://img.shields.io/badge/result-fee_0.00%25_spread_0%25-brightgreen.svg?style=for-the-badge" height="20">
-  <a href="https://doi.org/10.5281/zenodo.23927459"><img alt="DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.23927459.svg" height="20"></a>
+  <a href="https://doi.org/10.5281/zenodo.23927458"><img alt="DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.23927458.svg" height="20"></a>
 </p>
 
 <h1 align="center">x402 Treasury Experiments</h1>
@@ -70,7 +70,7 @@ Each experiment directory under `experiments/` contains its protocol, operator r
 
 **Status:** complete. **First published release:** [v1.0.1](https://github.com/clouatre-labs/x402-treasury-experiments/releases/tag/v1.0.1). Version history note: v1.0.0 (wrong commit) and v1.0.2 (superseded before its metadata aligned) were deleted, and GitHub permanently reserves those names, so the published releases are v1.0.1 and v1.0.3 onward.
 
-Across all 8 executed tranches ($1, $1, $5, $5, $20, $20, $100, and the $5.25908 residual, totaling $157.25908 USDC converted via the Coinbase Advanced Trade convert API), the convert fee quoted and charged was $0.00, the realized fee was 0.00%, and the USD spread against the $1.00 USDC mid was 0%: each tranche converted 1:1 into fiat (`fiat_received` equals `amount_usdc` in every record). The only realized cost of the sweep was Base gas for the eight on-chain transfer legs, paid from the 0.00014 ETH float seeded at funding (approximately $0.31). The pre-registered ninth tranche (`full-2`) was recorded as `not_executed`: a single-balance wallet has no residual balance after `full-1` runs.
+Across all 8 executed tranches ($1, $1, $5, $5, $20, $20, $100, and the $5.25908 residual, totaling $157.25908 USDC converted via the Coinbase Advanced Trade convert API), the convert fee quoted and charged was $0.00, the realized fee was 0.00%, and the USD spread against the $1.00 USDC mid was 0%: each tranche converted 1:1 into fiat (`fiat_received` equals `amount_usdc` in every record). The only realized cost of the sweep was Base gas for the eight on-chain transfer legs: total gas spent was 0.00000654 ETH (summed from the committed transaction receipts), under 5% of the 0.00014 ETH float seeded at funding (approximately $0.31). The pre-registered ninth tranche (`full-2`) was recorded as `not_executed`: a single-balance wallet has no residual balance after `full-1` runs.
 
 The full written report, per-tranche record table, and reproduction commands live in [results/usdc-fiat-sweep-api.md](results/usdc-fiat-sweep-api.md).
 
@@ -94,8 +94,8 @@ See [CITATION.cff](CITATION.cff) or:
   author = {Clouâtre, Hugues},
   year   = {2026},
   doi    = {10.5281/zenodo.23927458},
-  note   = {All versions. Version-specific DOI: \url{https://doi.org/10.5281/zenodo.23927459}}
+  note   = {All versions. Latest version DOI: \url{https://doi.org/10.5281/zenodo.23929259}}
 }
 ```
 
-Dataset archived at Zenodo: [10.5281/zenodo.23927459](https://doi.org/10.5281/zenodo.23927459) (all versions: [10.5281/zenodo.23927458](https://doi.org/10.5281/zenodo.23927458)). Companion post: [Agent payments and the x402 treasury](https://clouatre.ca/posts/agent-payments-x402/).
+Dataset archived at Zenodo (concept DOI): [10.5281/zenodo.23927458](https://doi.org/10.5281/zenodo.23927458); latest version: [10.5281/zenodo.23929259](https://doi.org/10.5281/zenodo.23929259). Companion post: [Agent payments and the x402 treasury](https://clouatre.ca/posts/agent-payments-x402/).
