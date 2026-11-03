@@ -91,10 +91,10 @@ See [CITATION.cff](CITATION.cff) or:
 ```bibtex
 @dataset{clouatre2026x402treasury,
   title  = {x402 Treasury Experiments},
-  author = {Clou\^{a}tre, Hugues},
+  author = {Clouâtre, Hugues},
   year   = {2026},
-  doi    = {10.5281/zenodo.23927459},
-  note   = {Version 1.0.1. Dataset: \url{https://doi.org/10.5281/zenodo.23927459}}
+  doi    = {10.5281/zenodo.23927458},
+  note   = {All versions. Version-specific DOI: \url{https://doi.org/10.5281/zenodo.23927459}}
 }
 ```
 
