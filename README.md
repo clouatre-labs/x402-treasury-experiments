@@ -1,7 +1,7 @@
 <p align="center">
   <a href="https://conventionalcommits.org"><img alt="Conventional Commits" src="https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg?style=for-the-badge" height="20"></a>
   <a href="https://github.com/clouatre-labs/x402-treasury-experiments/blob/main/LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge" height="20"></a>
-  <img alt="result-pending" src="https://img.shields.io/badge/result-pending-lightgrey.svg?style=for-the-badge" height="20">
+  <img alt="result-complete" src="https://img.shields.io/badge/result-complete-brightgreen.svg?style=for-the-badge" height="20">
 </p>
 
 <h1 align="center">x402 Treasury Experiments</h1>
@@ -31,7 +31,7 @@ graph TD
 | Slug | Question | Status | Key Result |
 |------|----------|--------|------------|
 | `usdc-fiat-sweep` | Retail Coinbase off-ramp cost (human-executed) | superseded pre-execution | n/a |
-| `usdc-fiat-sweep-api` | Automated Advanced Trade off-ramp cost across $1-$100+ tranches | planned | TODO |
+| `usdc-fiat-sweep-api` | Automated Advanced Trade off-ramp cost across $1-$100+ tranches | complete | realized fee 0.00% on every tranche ($1 to full balance); convert fee quoted and charged at $0.00; USD spread 0% |
 
 ## Repository Layout
 
