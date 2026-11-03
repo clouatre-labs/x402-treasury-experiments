@@ -91,3 +91,13 @@ Each experiment enumerates its own threats in `protocol.md`. Recurring ones:
   retry now inspects the parsed response body as well as thrown errors, with a
   bounded 20-minute wait window. No tranche was re-sent; `level100-1`'s
   on-chain transfer was persisted and is resumed from the convert hop.
+- 2026-11-03, figure 3 (fee decomposition): the recipe divides each cost
+  component by the maximum observed cost, and every component is zero across
+  all executed tranches (convert fee quoted and charged at $0.00, spread 0%,
+  network fee 0), so the figure is degenerate (division by zero) and is not
+  generated. This is the measured result, not missing data: figures 1 and 2
+  are generated from the same records. Also note the recipe's
+  `ADVERTISED_FIXED_FEE_USD = 0.25` overlay constant predates execution and
+  could not be updated (recipe scripts are frozen post-execution); the
+  advertised fee recorded verbatim from the live convert quote API at
+  execution time is $0.00, which equals the realized fee on every tranche.
