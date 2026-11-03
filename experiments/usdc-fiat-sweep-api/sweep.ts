@@ -670,24 +670,28 @@ async function executeTranche(
     log(`Wrote pre-registered not_executed record for ${tranche.id}`);
     return;
   }
-  if (amount <= 0) {
-    throw new Error(`${tranche.id}: receiver balance ${balance} cannot fund tranche amount ${amount}`);
-  }
-  if (tranche.amountUsdc !== null && balance + 1e-9 < tranche.amountUsdc) {
-    throw new Error(
-      `${tranche.id}: receiver USDC balance ${balance} is below tranche amount ${tranche.amountUsdc}; refusing to execute`,
-    );
-  }
-
   // Hop 1: on-chain send (Base mainnet), locally signed. On post-crash resume,
   // a persisted receipt proves hop 1 already executed; skip the send (no re-runs).
   const rawDir = path.join(RAW_DIR, tranche.id);
   const receiptFile = path.join(rawDir, "tx-receipt.json");
+  const alreadySent = existsSync(receiptFile);
+  // Balance sufficiency applies only to a fresh send; on a resume run the
+  // funds have already departed the receiver legitimately.
+  if (!alreadySent) {
+    if (amount <= 0) {
+      throw new Error(`${tranche.id}: receiver balance ${balance} cannot fund tranche amount ${amount}`);
+    }
+    if (tranche.amountUsdc !== null && balance + 1e-9 < tranche.amountUsdc) {
+      throw new Error(
+        `${tranche.id}: receiver USDC balance ${balance} is below tranche amount ${tranche.amountUsdc}; refusing to execute`,
+      );
+    }
+  }
   let txHash: string;
   let sentTimestamp: string;
   const midFetch = await fetchUsdcMid();
   let receipt: { status: unknown; transactionHash: string; gasUsed?: bigint; blockNumber?: string };
-  if (existsSync(receiptFile)) {
+  if (alreadySent) {
     log(`${tranche.id}: persisted tx receipt found; resuming from convert hop (hop 1 not re-sent)`);
     receipt = JSON.parse(readFileSync(receiptFile, "utf8"));
     if (typeof receipt.gasUsed === "string") receipt.gasUsed = BigInt(receipt.gasUsed);
