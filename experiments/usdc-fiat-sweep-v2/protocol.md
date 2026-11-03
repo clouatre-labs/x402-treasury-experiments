@@ -1,73 +1,80 @@
-# Protocol: usdc-fiat-sweep-v2 (DRAFT - not sealed)
+# Protocol: usdc-fiat-sweep-v2 (DRAFT - externally reviewed, redesigned, ready to re-seal)
 
-> **STATUS: DRAFT — externally reviewed, revisions incorporated, ready to seal.**
-> Gemini independent review returned approve-with-revisions (8-point verdict);
-> all six required revisions are incorporated in this text: Arm B network
-> parity, Arm C fee decomposition, slippage endpoints, provider selection
-> criteria, strictly descriptive latency with mechanical `is_latency_valid`
-> exclusion rules, FX benchmark fixation, and the dry-run-before-seal sequence
-> reorder. Nothing in this file authorizes execution yet. On sealing, this
-> notice is removed, the file is committed, and the
-> stop-and-record clauses of [METHODOLOGY.md](../../METHODOLOGY.md) apply.
+> **STATUS: DRAFT.** This protocol supersedes the previous v2 draft (4 arms,
+> ~$3,270 working capital) after a KISS/cost re-review. The original Gemini
+> review (approve-with-revisions, 8-point verdict) was applied to that draft;
+> this redesign keeps every structural review fix (mechanical latency
+> exclusion rules, provider selection criteria, network parity, dry-run
+> before seal, descriptive-only latency) and re-scopes the measurement to
+> micro-volume sweeps, which match the actual x402 treasury pattern: revenue
+> arrives as micro-receipts and is swept as small accumulated balances.
+> Nothing in this file authorizes execution yet. On sealing, this notice is
+> removed and the stop-and-record clauses of
+> [METHODOLOGY.md](../../METHODOLOGY.md) apply.
 
 ## Motivation
 
 v1 (`usdc-fiat-sweep-api`) verified Coinbase's 1:1 USDC/USD convert on Base at
-sub-$100 volumes and produced a degenerate (constant-zero) fee result. External
-review of v1 identified three confounds the design cannot address:
+sub-$100 volumes and produced a degenerate (constant-zero) fee result. The
+prior v2 draft addressed v1's confounds with tier-boundary and $1,000-scale
+tranches; a KISS/cost re-review rejected that scale: ~$2,700 of round-trip
+working capital to probe a fee tier the target audience does not reach, when
+every cost endpoint except tier boundaries is measurable at micro volumes.
 
-1. **Platform subsidy**: the zero fee is Coinbase's issuer-redemption policy on
-   its own custodial rail, not a property of fiat off-ramps.
-2. **Scale truncation**: max executed tranche $100 cannot detect tier
-   boundaries, order-book spread, or retail-API allowance limits.
-3. **Infrastructure coupling**: Base deposit into Coinbase custody is an
-   integrated issuer rail; no independent provider or network was measured.
-
-v1 also stopped at the exchange ledger: `fiat_spendable` means spendable on
-Coinbase, not delivered to a bank account. v2 measures the off-ramp cost
-surface beyond that boundary.
+This protocol measures the off-ramp cost surface at the volumes x402
+operators actually sweep: micro-receipt revenue accumulated into small
+balances. Fixed fees, percentage fees, spreads, slippage, per-hop latency,
+and bank-disbursement deductions are all observable in receipts at these
+sizes; tier boundaries are explicitly out of scope (they are documented in
+provider schedules and can be probed later as their own pre-registered
+conversion when real revenue volume justifies it).
 
 ## Research questions
 
-- Q1: Does the 1:1 convert hold at treasury-relevant volumes, or do tier
-  boundaries / spreads appear? (tier-boundary arm)
-- Q2: What is realized vs advertised off-ramp cost at independent providers
-  (non-issuer rails)? (cross-provider arm)
-- Q3: What does bank disbursement add in cost and latency after the exchange
-  ledger? (disbursement endpoint)
-- Q4: Is v1's zero fee stable over time, or a promotional snapshot?
-  (time-lapse re-sweep)
+- Q1: What do independent providers (non-issuer rails) actually charge to
+  convert micro USDC balances to fiat, realized vs advertised? (cross-provider arm)
+- Q2: What does bank disbursement add in cost and latency after the exchange
+  ledger, and how do exchange fees separate from bank deductions?
+  (disbursement arm)
+- Q3: Is v1's zero fee stable at micro volumes on the same Coinbase rail?
+  (continuity arm)
 
 ## Design
 
-Pre-registered dose-response and provider-comparison measurement; no
-randomized control arm exists for a fiat off-ramp. Comparators are advertised
-provider fee schedules (advertised vs realized), verbatim-recorded from live
-quote/rate-card APIs at execution time (correcting v1's stale-overlay
-deviation).
+Pre-registered provider-comparison measurement at micro volume; no randomized
+control arm exists for a fiat off-ramp. Comparators are advertised provider
+fee schedules (advertised vs realized), verbatim-recorded from live
+quote/rate-card APIs at execution time.
 
 ### Arms and tranches (sealed on commit; one execution pass)
 
 | Arm | Provider/rail | Tranches | Endpoints |
 |-----|---------------|----------|-----------|
-| A: tier boundary | Coinbase Advanced Trade convert (Base deposit) | $250 x1, $500 x1, $1,000 x1 | realized fee, quoted fee, spread vs mid, per-hop latency, gas per leg |
-| B: cross-provider | two independent providers selected before sealing, restricted strictly to rails supporting native USDC deposits on Base to prevent network gas asymmetry (candidates: Dexter, AsterPay, Kraken; final selection recorded in the sealed runbook with fee schedule snapshot) | $100 x1 each, plus each provider's minimum practical tranche | realized fee, quoted fee, spread vs mid, realized slippage vs quoted price (broker/AMM rails), per-hop latency |
-| C: disbursement | exchange USD ledger -> external bank account (ACH first; wire once as boundary probe) | $500 x1 ACH, $500 x1 wire | exchange-quoted disbursement fee, external bank/intermediary deduction, net settled amount, hold/arrival latency |
-| D: time-lapse | Coinbase Advanced Trade convert (repeat of v1 levels) | $20 x1, $100 x1 | realized fee, quoted fee, spread vs mid |
+| A: cross-provider | two independent providers selected before sealing, restricted strictly to rails supporting native USDC deposits on Base (candidates: Dexter, Kraken; final selection recorded in the sealed runbook with verbatim fee-schedule snapshot) | $10 x1 each, then one residue sweep per provider (accumulated remainder, pre-registered formula: whatever the deposit leaves) | realized fee, quoted fee, spread vs mid, realized slippage vs quoted price (broker/AMM rails), per-hop latency |
+| B: disbursement | exchange USD ledger -> external bank account via ACH, from one Arm A provider chosen at sealing | $20 x1 | exchange-quoted disbursement fee, external bank/intermediary deduction, net settled amount, hold/arrival latency |
+| C: continuity | Coinbase Advanced Trade convert (Base deposit), v1 rail | $5 x2 | realized fee, quoted fee, spread vs mid, per-hop latency |
 
-Total planned conversions: 11 (one pass, ascending order within arms;
+Total planned conversions: 7 (one pass, ascending order within arms;
 no tranche re-run). `not_executed` outcomes are recorded, never retried.
 
-### Volume-cap rationale
+### Working capital and cost budget
 
-The $1,000 top tranche is a deliberate cap, not an oversight. Coinbase retail
-convert volume tiers typically trigger at $10,000+ 30-day trailing volume,
-which is out of scope for a retail convert endpoint; $1,000 adequately probes
-consumer/prosumer retail convert spread boundaries. Raising the top tranche
-to $5,000-$10,000 would increase automated compliance-hold,
-source-of-funds-freeze, and multi-day disbursement-review risk that could
-stall execution mid-protocol. Total gross working capital across arms is
-approximately $3,120-$3,270, cycling back to the operator's own fiat.
+Total float: approximately $65, cycling back to the operator's own fiat.
+Worst-case real cost budget: under $1 (advertised schedules imply roughly
+$0.02 Kraken convert on $10, Dexter 0.1-0.5% on $10, ACH $0, Base gas
+fractions of a cent per leg). If realized cost would exceed the budget,
+records still commit as measured; the budget is a design expectation, not a
+censoring rule.
+
+### Out of scope (explicit)
+
+- Tier-boundary probing at $250-$1,000+ volumes (requires manufactured
+  float; provider schedules document these boundaries; can be pre-registered
+  separately if real revenue ever reaches them)
+- EUR/FX arms and any cross-currency decomposition
+- Wire disbursement (ACH only; wire adds cost without changing the
+  exchange-vs-bank separation logic at these amounts)
+- Time-lapse re-measurement (folded into future work; Q3 covers continuity)
 
 ### Sealed-before-execution artifacts
 
@@ -79,55 +86,42 @@ approximately $3,120-$3,270, cycling back to the operator's own fiat.
   `api_error`, `operator_interrupted`, `partial_fill`), `is_latency_valid`
   (boolean, see Statistical stance), `quoted_slippage_max` and
   `realized_slippage` (broker/AMM rails), `exchange_disbursement_fee_usd`,
-  `external_bank_intermediary_fee_usd`, `net_amount_settled_usd`, and the
-  EUR-arm fields defined in the EUR-arm note)
+  `external_bank_intermediary_fee_usd`, `net_amount_settled_usd`)
 - Figure recipes (regenerated from run records only; no hand-typed numbers)
 - Budget and working-capital source; wallet/keying rules inherited from v1
   (receiver wallet sourced from the secret store at execution time only)
 
 ### Provider selection criteria (fixed in the sealed text)
 
-Selection of the two Arm B providers is locked at sealing, before any live
+Selection of the two Arm A providers is locked at sealing, before any live
 keying or funds move. Exactly two providers are chosen under these inclusion
 criteria:
 
-1. Deposit network parity: native USDC deposits on Base required.
+1. Deposit network parity: native USDC deposits on Base required (must be
+   verified against the provider's current supported-networks documentation
+   at selection time; Kraken's Base support is unconfirmed as of this draft
+   and disqualifies Kraken if absent).
 2. Account readiness: full verification completed and disbursement rails
    active prior to sealing; no unverified accounts permitted.
 3. Rail typology: exactly one centralized-exchange alternative with an
    order-book/convert tool (e.g., Kraken) and one specialized fiat off-ramp
-   or payments gateway (e.g., Dexter/AsterPay); no duplicate architectures.
-
-### EUR-arm note
-
-If AsterPay (or any EUR-settling provider) is selected, FX is a second
-variable; results are reported separately, never averaged into USD arms. The
-FX benchmark is fixed in the sealed text: mid-market EUR/USD is the real-time
-rate polled from the Kraken EUR/USD public ticker at the exact UNIX timestamp
-of conversion order submission; the benchmark rate and its timestamp are
-recorded verbatim in every EUR record. Each EUR record decomposes the
-conversion as: `gross_usdc_debited`, `eur_received_pre_disbursement`,
-`benchmark_eur_usd_rate`, `effective_eur_usd_rate`, and
-`implied_fx_spread_bps` (derived), so provider spread, provider fees, and FX
-loss are separable.
+   or payments gateway (e.g., Dexter); no duplicate architectures.
 
 ## Statistical stance
 
 - Fee/spread results per arm are deterministic observations at fixed volumes;
-  no regression or elasticity modeling (v1 review finding: zero variance
-  supports no dose-response inference).
+  no regression or elasticity modeling. Tabular point estimates and variance
+  comparisons against advertised rate cards are the correct form.
 - Latency: strictly descriptive across ALL arms — median, range, and observed
   run-order times only. No inferential distribution modeling, parametric
   confidence intervals, quantile projections, or SLA estimations will be
-  performed at any sample size (cross-system financial-rail latency is
-  multimodal and right-skewed; no n threshold licenses inference). The v1
-  latency endpoint (n=3) remains exploratory; v2 does not pool v1 and v2
-  latency.
+  performed at any sample size. The v1 latency endpoint (n=3) remains
+  exploratory; v2 does not pool v1 and v2 latency.
 - Mechanical latency exclusion rule (fixed in the sealed text): a record is
-  excluded from latency calculations if and only if `is_latency_valid ==
-  false`. The script shall automatically set `is_latency_valid = false` if
-  any HTTP call times out, if manual operator recovery is invoked, or if
-  deposit credit polling exceeds the pre-registered timeout threshold.
+  excluded from latency calculations if and only if `is_latency_valid == false`.
+  The script shall automatically set `is_latency_valid = false` if any HTTP
+  call times out, if manual operator recovery is invoked, or if deposit
+  credit polling exceeds the pre-registered timeout threshold.
   `is_latency_valid` is computed programmatically in the primary execution
   thread; any retry, exception, or recovery intervention sets it false.
   No post-execution judgment enters the exclusion; failure of any hop is a
@@ -137,27 +131,29 @@ loss are separable.
 
 Single-wallet, operator-executed measurement; timestamps from the operator
 script. Every deviation is recorded verbatim per METHODOLOGY stop-and-record.
+Scope caveat inherited from the v1 review: results describe the measured
+providers and rails at micro volumes; they do not generalize to other
+networks, providers, or volume tiers.
 
 ## Sequence
 
-1. External validation of this draft (Gemini review); incorporate or rebut
-   each finding in this file
-2. Finalize provider selection, fee-schedule snapshots, and extended schema;
-   update DATA_DICTIONARY.md and `validate_schema.py`; run the mock dry-run
-   (non-transacting script verification and sandbox/zero-value API ping) so
-   code correctness is proven BEFORE anything is frozen
+1. External validation of this redesign (short delta review, same Gemini
+   session as the original v2 review); incorporate or rebut findings
+2. Finalize provider selection (verify Base-deposit support per criterion 1),
+   fee-schedule snapshots, and extended schema; update DATA_DICTIONARY.md and
+   `validate_schema.py`; run the mock dry-run (non-transacting script
+   verification and sandbox/zero-value API ping) so code correctness is
+   proven BEFORE anything is frozen
 3. Seal: commit protocol, schemas, and frozen recipes; freeze repository
    state; remove the DRAFT notice
-4. Live execution pass only — the single transacting pass; preflight
-   checks are read-only and no code changes are permitted from here on
+4. Live execution pass only — the single transacting pass; preflight checks
+   are read-only and no code changes are permitted from here on
 5. Commit records verbatim; generate figures; write
-   `results/usdc-fiat-sweep-v2.md`; update README index and #2090
+   `results/usdc-fiat-sweep-v2.md`; update README index
 
 ## Acceptance criteria
 
-- [ ] All six external-review revisions incorporated (network parity, fee
-      decomposition, slippage endpoints, selection criteria, latency rules,
-      sequence reorder)
+- [ ] Delta review findings addressed or rebutted in this file before sealing
 - [ ] Provider fee schedules snapshotted verbatim before first conversion
 - [ ] All conversions one pass, ascending, no re-runs; failures recorded with
       `execution_status` and `is_latency_valid` set programmatically
@@ -165,4 +161,6 @@ script. Every deviation is recorded verbatim per METHODOLOGY stop-and-record.
 - [ ] Figures regenerate from committed records only
 - [ ] Bank-disbursement cost and latency reported with exchange fees and
       external bank deductions separated
+- [ ] Total float within the ~$65 budget; real cost within the <$1 budget
+      (or the overage recorded and discussed in the results report)
 - [ ] No private keys, seeds, or credentials in any committed file
