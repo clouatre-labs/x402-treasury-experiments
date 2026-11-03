@@ -56,6 +56,30 @@ graph TD
 
 Each experiment directory under `experiments/` contains its protocol, operator runbook, record-extraction instructions, raw sessions, and analysis records, so any result can be traced back to its pre-registered design.
 
+## Results
+
+### usdc-fiat-sweep-api
+
+**Status:** complete. **First published release:** [v1.0.1](https://github.com/clouatre-labs/x402-treasury-experiments/releases/tag/v1.0.1) (v1.0.0 was created by mistake against the wrong commit and deleted; GitHub permanently reserves the name, so v1.0.1 is the first published version).
+
+Across all 8 executed tranches ($1, $1, $5, $5, $20, $20, $100, and the $5.25908 residual, totaling $157.25908 USDC converted via the Coinbase Advanced Trade convert API), the convert fee quoted and charged was $0.00, the realized fee was 0.00%, and the USD spread against the $1.00 USDC mid was 0%: each tranche converted 1:1 into fiat (`fiat_received` equals `amount_usdc` in every record). The only realized cost of the sweep was Base gas for the eight on-chain transfer legs, paid from the 0.00014 ETH float seeded at funding (approximately $0.31). The pre-registered ninth tranche (`full-2`) was recorded as `not_executed`: a single-balance wallet has no residual balance after `full-1` runs.
+
+Realized fee per tranche, with the advertised fee schedule overlaid:
+
+![Realized fee falls as tranche amount grows; advertised fee schedule overlaid](figures/usdc_fiat_sweep_fig1_fee_vs_amount.svg)
+
+*Figure 1: Realized fee per executed tranche (all 0.00%), with the advertised Coinbase fixed-fee schedule as a percentage of tranche amount overlaid for reference.*
+
+Time from on-chain send to fiat spendable:
+
+![Fiat spendable lands within two minutes of the send](figures/usdc_fiat_sweep_fig2_hop_latency.svg)
+
+*Figure 2: Send-to-spendable latency per executed tranche; clean data points are 3m56s (`level20-2`), 4m23s (`level100-1`), and 5s (`full-1`).*
+
+Figure 3 (fee decomposition) is intentionally absent: every cost component is zero in the records, so there is nothing to decompose.
+
+**Limitations.** (1) `timestamp_coinbase_credit`/`timestamp_fiat_spendable` for the first five tranches (`level1-1`, `level1-2`, `level20-1`, `level5-1`, `level5-2`) are recovery-time artifacts of the `level1-1` remediation (see [METHODOLOGY.md, Execution Deviations](METHODOLOGY.md#execution-deviations-recorded-per-protocol-stop-and-record)), not fill moments; latency findings rest on the three clean points in Figure 2. (2) The Figure 1 advertised-fee overlay uses the pre-execution `ADVERTISED_FIXED_FEE_USD` constant in `recipe/usdc_fiat_sweep_common.py`; the live Advanced Trade taker schedule was recorded verbatim in the raw artifacts, but the frozen recipe's overlay constant was not updated after execution. (3) This is a single-wallet, operator-executed measurement: timestamps come from the operator script rather than an independent observer, and no independent replication exists.
+
 ## Citing This Work
 
 See [CITATION.cff](CITATION.cff). A DOI will be added before first release.
