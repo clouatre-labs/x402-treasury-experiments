@@ -41,13 +41,21 @@ The on-chain sweep legs are signed locally with `viem` from `X402_RECEIVER_PRIVA
 - Realized percentage fee.
 - Fixed fee in USD.
 - Spread vs USDC mid at execution time.
-- Per-hop latency: on-chain send (Base mainnet), Coinbase credit/convert fill, fiat or USD balance spendable.
+- Per-hop latency: on-chain send (Base mainnet), Coinbase credit/convert fill, USD credited in Coinbase custody (convert fill observed). The terminal hop is custody credit, not bank-withdrawable cash: ACH/wire withdrawal to an external bank account is out of scope and unmeasured.
 
 There is no `manual_steps` endpoint: execution is fully automated, so the manual-step metric is dropped for this experiment. The only manual operator action is the one-time funding purchase and withdrawal.
+
+### Convert-surface clarification
+
+The Convert endpoint (`/api/v3/brokerage/convert/*`) is Coinbase's conversion surface, not the USDC-USD order book: vendor fee disclosures state that for conversions the spread is included in the quoted exchange rate, whereas Advanced order-book trades carry no spread. This experiment therefore measures the Convert pathway as shipped, and any realized-vs-1.0000 delta in the quoted rate (embedded spread) is part of the measured quantity, not noise. Per the same disclosure, USDC-USD conversions carry no conversion fee below $5M net per rolling 30 days (0.10% above); the advertised-fee comparator reflects that schedule. The $1 levels sit at the lower bound of typical Advanced Trade minimum order sizes; if the Convert endpoint rejects a $1 quote, that tranche is recorded as failed with the verbatim error — no re-run and no amount adjustment.
 
 ## Data Source
 
 The receiver wallet of clouatre.ca x402 revenue (`X402_PAY_TO`, Base mainnet). The `MAINNET_PAYER` wallet is excluded: it is spend-side operating float, and payer self-tests are already excluded from revenue accounting.
+
+### Gas float provenance
+
+The receiver wallet's Base ETH gas float (approximately $0.10) is seeded by the operator in the same Coinbase purchase flow as the USDC pre-funding and withdrawn together with it as one inbound transfer. It is an acknowledged operational cost of the sweep, funded separately from settled x402 revenue; the sweep legs record gas consumed verbatim per record.
 
 ### Receiver private key custody rule
 
