@@ -520,38 +520,49 @@ async function convertTranche(amount: number): Promise<{
   const quoteResponse = (await cdpRequest("POST", "/api/v3/brokerage/convert/quote", {
     from_account: "USDC",
     to_account: "USD",
-    from_amount: amount.toFixed(2),
+    amount: amount.toFixed(2),
     // USDC to USD convert is 1:1 on Coinbase; amount already in USD units.
-  })) as { convert_quote_id?: string; quote_time?: string };
-  const quoteId = quoteResponse.convert_quote_id;
+  })) as Record<string, unknown>;
+  // The API wraps the payload in a `trade` object; tolerate both shapes.
+  const quoteTrade = (quoteResponse.trade ?? quoteResponse) as Record<string, unknown>;
+  const quoteId = (quoteTrade.convert_quote_id ?? quoteTrade.id) as string | undefined;
   if (!quoteId) {
     throw new Error(`convert quote response missing convert_quote_id: ${JSON.stringify(quoteResponse)}`);
   }
-  const tradeResponse = (await cdpRequest("POST", `/api/v3/brokerage/convert/trade/${quoteId}`, {})) as Record<string, unknown>;
+  const tradeResponse = (await cdpRequest("POST", `/api/v3/brokerage/convert/trade/${quoteId}`, {
+    trade_id: quoteId,
+    from_account: "USDC",
+    to_account: "USD",
+  })) as Record<string, unknown>;
   let fill: unknown = tradeResponse;
   let spendableTimestamp = nowIso();
   // Poll the convert trade until it is filled (bounded).
   for (let attempt = 0; attempt < 30; attempt++) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    fill = await cdpRequest("GET", `/api/v3/brokerage/convert/trade/${quoteId}`);
-    const status = (fill as { status?: string }).status;
-    if (status === "COMPLETE" || status === "FILLED" || status === "SUCCESS") {
+    fill = await cdpRequest(
+      "GET",
+      `/api/v3/brokerage/convert/trade/${quoteId}?from_account=USDC&to_account=USD`,
+    );
+    const fillTrade = ((fill as Record<string, unknown>).trade ?? fill) as { status?: string };
+    if (fillTrade.status === "COMPLETE" || fillTrade.status === "FILLED" || fillTrade.status === "SUCCESS") {
       spendableTimestamp = nowIso();
       break;
     }
-    if (typeof status === "string" && /FAIL|CANCEL|EXPIRE/i.test(status)) {
-      throw new Error(`convert trade ${quoteId} reached terminal failure status ${status}`);
+    if (typeof fillTrade.status === "string" && /FAIL|CANCEL|EXPIRE/i.test(fillTrade.status)) {
+      throw new Error(`convert trade ${quoteId} reached terminal failure status ${fillTrade.status}`);
     }
   }
-  // The quoted fee is captured verbatim from the quote response.
-  const feeValue = (quoteResponse as { fee?: string | number }).fee;
-  const fixedFeeUsd = feeValue === undefined ? 0 : Number(feeValue);
+  // The quoted fee is captured verbatim from the quote response. The trade
+  // object nests the absolute fee as total_fee.amount.value.
+  const quoteFee = quoteTrade.total_fee as { amount?: { value?: string | number } } | undefined;
+  const feeValue = quoteFee?.amount?.value ?? (quoteTrade.fee as string | number | undefined);
+  const fixedFeeUsd = feeValue === undefined || feeValue === null ? 0 : Number(feeValue);
   return {
     quote: quoteResponse,
     fill,
     quoteId,
     fixedFeeUsd,
-    creditTimestamp: quoteResponse.quote_time ?? nowIso(),
+    creditTimestamp: (quoteTrade.quote_time as string | undefined) ?? nowIso(),
     spendableTimestamp,
   };
 }
