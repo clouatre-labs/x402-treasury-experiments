@@ -536,10 +536,20 @@ async function convertTranche(amount: number, rawDir?: string): Promise<{
       spendableTimestamp: nowIso(),
     };
   }
-  // Base deposits credit to the Coinbase account with a lag; retry the quote
-  // on INSUFFICIENT_BALANCE instead of failing (bounded wait, no re-sends).
+  // Base deposits credit to the Coinbase account with a lag, and the convert
+  // quote endpoint returns HTTP 200 with an empty trade carrying
+  // cancellation_reason ERROR_CODES_INSUFFICIENT_BALANCE when the balance has
+  // not credited yet (documented behavior: insufficient-balance failures do
+  // not use error status codes). Retry the quote in both cases instead of
+  // failing (bounded wait, no re-sends).
   let quoteResponse: Record<string, unknown>;
-  for (let attempt = 0; ; attempt++) {
+  const insufficient = (resp: Record<string, unknown>): boolean => {
+    const t = (resp.trade ?? resp) as Record<string, unknown>;
+    return !t.id && /INSUFFICIENT_BALANCE/i.test(JSON.stringify(t.cancellation_reason ?? ""));
+  };
+  let lastQuoteError: unknown = null;
+  let credited = false;
+  for (let attempt = 0; attempt < 40; attempt++) {
     try {
       quoteResponse = (await cdpRequest("POST", "/api/v3/brokerage/convert/quote", {
         from_account: "USDC",
@@ -547,16 +557,24 @@ async function convertTranche(amount: number, rawDir?: string): Promise<{
         amount: amount.toFixed(2),
         // USDC to USD convert is 1:1 on Coinbase; amount already in USD units.
       })) as Record<string, unknown>;
-      break;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (attempt < 20 && /INSUFFICIENT_BALANCE/i.test(msg)) {
-        log(`  deposit not credited yet (attempt ${attempt + 1}/20); waiting 30s before re-quoting`);
+      if (/INSUFFICIENT_BALANCE/i.test(err instanceof Error ? err.message : String(err))) {
+        lastQuoteError = err;
         await new Promise((resolve) => setTimeout(resolve, 30000));
         continue;
       }
       throw err;
     }
+    if (insufficient(quoteResponse)) {
+      log(`  deposit not credited yet (attempt ${attempt + 1}/40); waiting 30s before re-quoting`);
+      await new Promise((resolve) => setTimeout(resolve, 30000));
+      continue;
+    }
+    credited = true;
+    break;
+  }
+  if (!credited) {
+    throw (lastQuoteError ?? new Error("convert quote did not succeed within the deposit-credit wait window"));
   }
   // The API wraps the payload in a `trade` object; tolerate both shapes.
   const quoteTrade = (quoteResponse.trade ?? quoteResponse) as Record<string, unknown>;

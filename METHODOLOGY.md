@@ -83,3 +83,11 @@ Each experiment enumerates its own threats in `protocol.md`. Recurring ones:
   20 attempts), and tranches whose record file already exists are skipped
   entirely so re-invocations never overwrite executed records. No funds were
   added and no tranche was re-sent; the pass continued in ascending order.
+- 2026-11-03, tranche `level100-1` (convert stage): the convert quote endpoint
+  returns HTTP 200 with an empty trade and `cancellation_reason`
+  `ERROR_CODES_INSUFFICIENT_BALANCE` when the deposit has not credited yet
+  (documented behavior: insufficient-balance failures do not use error status
+  codes), so the exception-based retry never engaged. Remediation: the quote
+  retry now inspects the parsed response body as well as thrown errors, with a
+  bounded 20-minute wait window. No tranche was re-sent; `level100-1`'s
+  on-chain transfer was persisted and is resumed from the convert hop.
