@@ -774,7 +774,13 @@ async function modeExecute(): Promise<void> {
   const receiver = receiverAddress();
   const preBalance = await receiverUsdcBalance(receiver);
   const funding = JSON.parse(readFileSync(FUNDING_FILE, "utf8")) as { funding_tx_hash: string };
-  if (preBalance < 100) {
+  // The $100 check only applies before level100-1's send; once that transfer
+  // is persisted (receipt on disk) the balance requirement no longer applies
+  // and a resume run must not be blocked by the already-departed funds.
+  const level100 = TRANCHES.find((t) => t.id === "level100-1");
+  const level100AlreadySent =
+    level100 !== undefined && existsSync(path.join(RAW_DIR, level100.id, "tx-receipt.json"));
+  if (preBalance < 100 && !level100AlreadySent) {
     die(
       `receiver USDC balance ${preBalance} is below the $100 tranche requirement; confirm the funding transfer landed before executing`,
     );
