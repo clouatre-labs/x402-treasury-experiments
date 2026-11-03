@@ -20,7 +20,7 @@
  *               CDP JWT auth via a harmless GET, spot-price reachability.
  *               Writes nothing; safe to run any number of times.
  *
- * API surface: Coinbase Advanced Trade REST API (https://api.cdp.coinbase.com,
+ * API surface: Coinbase Advanced Trade REST API (https://api.coinbase.com,
  * /api/v3/brokerage/...), authenticated with ES256 JWTs per
  * https://docs.cdp.coinbase.com/get-started/authentication/jwt-authentication.
  *
@@ -59,7 +59,7 @@ const FUNDING_FILE = path.join(SESSIONS_DIR, "funding.json");
 const BASE_RPC = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as Address;
 const CHAIN_ID = 8453; // Base mainnet
-const CDP_API_BASE = "https://api.cdp.coinbase.com";
+const CDP_API_BASE = "https://api.coinbase.com"; // Advanced Trade REST (api.cdp.coinbase.com/api/v3/brokerage returns 404; verified live 2026-11-02)
 const SPOT_PRICE_URL = "https://api.coinbase.com/v2/prices/USDC-USD/spot";
 
 // Pre-registered tranche ladder (protocol.md). Full-balance replicate 2 is
@@ -152,7 +152,7 @@ async function cdpRequest(
 ): Promise<unknown> {
   const keyId = requireEnv("CDP_API_KEY_ID");
   const keySecret = requireEnv("CDP_API_KEY_SECRET");
-  const host = "api.cdp.coinbase.com";
+  const host = "api.coinbase.com"; // must match CDP_API_BASE for the JWT uri claim
   const jwt = await cdpJwt(keyId, keySecret, method, host, requestPath);
   const response = await fetch(`${CDP_API_BASE}${requestPath}`, {
     method,
