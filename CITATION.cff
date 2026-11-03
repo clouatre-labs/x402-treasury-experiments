@@ -12,7 +12,14 @@ date-released: "2026-11-03"
 version: "1.0.1"
 abstract: >
   Pre-registered measurements of the cost and friction of converting
-  accumulated L2 USDC micropayment revenue into spendable fiat.
+  accumulated L2 USDC micropayment revenue into spendable fiat. The
+  usdc-fiat-sweep-api experiment (v1.0.1) converted 8 tranches totaling
+  $157.25908 USDC to USD via the Coinbase Advanced Trade convert API:
+  the convert fee quoted and charged was $0.00, the realized fee was 0.00%,
+  and the USD spread was 0% on every tranche from $1 to the full wallet
+  balance; the only realized cost was Base gas (~$0.31). Figure 3 (fee
+  decomposition) is intentionally absent because every cost component is
+  zero.
 keywords:
   - pre-registered-experiment
   - reproducibility

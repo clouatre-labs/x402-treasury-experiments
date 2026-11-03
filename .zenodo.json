@@ -1,18 +1,30 @@
 {
   "title": "x402 Treasury Experiments",
-  "description": "Pre-registered measurements of the cost and friction of converting accumulated L2 USDC micropayment revenue into spendable fiat.",
+  "description": "Pre-registered measurements of the cost and friction of converting accumulated L2 USDC micropayment revenue into spendable fiat. Each experiment is committed before it runs: a protocol and operator runbook are fixed in git, raw observations are collected verbatim into sessions, and the analyzed record validates against a published schema. The usdc-fiat-sweep-api experiment (v1.0.1) converted 8 tranches totaling $157.25908 USDC to USD via the Coinbase Advanced Trade convert API: the convert fee quoted and charged was $0.00, the realized fee was 0.00%, and the USD spread was 0% on every tranche from $1 to the full wallet balance; the only realized cost was Base gas (~$0.31). Includes the pre-registered protocol and runbook, the 9 run records (8 executed, 1 pre-registered not_executed) with verbatim raw API artifacts, the frozen figure recipes, and figures 1-2 (figure 3, fee decomposition, is intentionally absent because every cost component is zero).",
   "upload_type": "dataset",
   "access_right": "open",
   "license": "Apache-2.0",
+  "language": "eng",
   "version": "1.0.1",
   "publication_date": "2026-11-03",
   "creators": [
     {
       "name": "Clouâtre, Hugues",
-      "orcid": "https://orcid.org/0009-0002-4291-1999"
+      "affiliation": "Université de Bordeaux",
+      "orcid": "0009-0002-4291-1999"
     }
   ],
   "related_identifiers": [
+    {
+      "identifier": "https://github.com/clouatre-labs/x402-treasury-experiments/releases/tag/v1.0.1",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    },
+    {
+      "identifier": "https://clouatre.ca/posts/agent-payments-x402/",
+      "relation": "references",
+      "resource_type": "publication-other"
+    },
     {
       "identifier": "https://github.com/clouatre-labs/x402-treasury-experiments",
       "relation": "isIdenticalTo",
@@ -23,7 +35,13 @@
     "pre-registered-experiment",
     "reproducibility",
     "payments",
-    "treasury"
+    "treasury",
+    "usdc",
+    "x402",
+    "stablecoin",
+    "fiat-off-ramp",
+    "base",
+    "coinbase"
   ],
   "custom": {
     "code:codeRepository": "https://github.com/clouatre-labs/x402-treasury-experiments"
