@@ -13,11 +13,11 @@ identifiers:
     description: Zenodo dataset DOI (all versions)
   - type: doi
     value: 10.5281/zenodo.23927459
-    description: Zenodo dataset DOI (version 1.0.1)
+    description: Zenodo dataset DOI (this version)
 repository-code: https://github.com/clouatre-labs/x402-treasury-experiments
 license: Apache-2.0
 date-released: "2026-11-03"
-version: "1.0.1"
+version: "1.0.2"
 abstract: >
   Pre-registered measurements of the cost and friction of converting
   accumulated L2 USDC micropayment revenue into spendable fiat. The
