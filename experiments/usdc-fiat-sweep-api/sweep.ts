@@ -158,7 +158,8 @@ async function cdpRequest(
   const keyId = requireEnv("CDP_API_KEY_ID");
   const keySecret = requireEnv("CDP_API_KEY_SECRET");
   const host = "api.coinbase.com"; // must match CDP_API_BASE for the JWT uri claim
-  const jwt = await cdpJwt(keyId, keySecret, method, host, requestPath);
+  // The JWT uri claim covers the path only; query parameters are excluded.
+  const jwt = await cdpJwt(keyId, keySecret, method, host, requestPath.split("?")[0]);
   const response = await fetch(`${CDP_API_BASE}${requestPath}`, {
     method,
     headers: {
@@ -509,7 +510,7 @@ function printExecutionPlan(): void {
   log("  raw responses -> sessions/raw/, records -> sessions/");
 }
 
-async function convertTranche(amount: number): Promise<{
+async function convertTranche(amount: number, rawDir?: string): Promise<{
   quote: unknown;
   fill: unknown;
   quoteId: string;
@@ -517,18 +518,55 @@ async function convertTranche(amount: number): Promise<{
   creditTimestamp: string;
   spendableTimestamp: string;
 }> {
-  const quoteResponse = (await cdpRequest("POST", "/api/v3/brokerage/convert/quote", {
-    from_account: "USDC",
-    to_account: "USD",
-    amount: amount.toFixed(2),
-    // USDC to USD convert is 1:1 on Coinbase; amount already in USD units.
-  })) as Record<string, unknown>;
+  // Convert-stage resume: a persisted fill proves quote+commit already
+  // happened; reuse it instead of quoting (which would double-convert).
+  if (rawDir && existsSync(path.join(rawDir, "convert-fill.json"))) {
+    log("  persisted convert fill found; reusing committed trade (quote/commit not re-sent)");
+    const fill = JSON.parse(readFileSync(path.join(rawDir, "convert-fill.json"), "utf8")) as Record<string, unknown>;
+    const fillTrade = (fill.trade ?? fill) as Record<string, unknown>;
+    const quoteId = (fillTrade.convert_quote_id ?? fillTrade.id) as string;
+    const fee = fillTrade.total_fee as { amount?: { value?: string | number } } | undefined;
+    const feeValue = fee?.amount?.value ?? (fillTrade.fee as string | number | undefined);
+    return {
+      quote: null,
+      fill,
+      quoteId,
+      fixedFeeUsd: feeValue === undefined || feeValue === null ? 0 : Number(feeValue),
+      creditTimestamp: (fillTrade.created_time as string | undefined) ?? (fillTrade.quote_time as string | undefined) ?? nowIso(),
+      spendableTimestamp: nowIso(),
+    };
+  }
+  // Base deposits credit to the Coinbase account with a lag; retry the quote
+  // on INSUFFICIENT_BALANCE instead of failing (bounded wait, no re-sends).
+  let quoteResponse: Record<string, unknown>;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      quoteResponse = (await cdpRequest("POST", "/api/v3/brokerage/convert/quote", {
+        from_account: "USDC",
+        to_account: "USD",
+        amount: amount.toFixed(2),
+        // USDC to USD convert is 1:1 on Coinbase; amount already in USD units.
+      })) as Record<string, unknown>;
+      break;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (attempt < 20 && /INSUFFICIENT_BALANCE/i.test(msg)) {
+        log(`  deposit not credited yet (attempt ${attempt + 1}/20); waiting 30s before re-quoting`);
+        await new Promise((resolve) => setTimeout(resolve, 30000));
+        continue;
+      }
+      throw err;
+    }
+  }
   // The API wraps the payload in a `trade` object; tolerate both shapes.
   const quoteTrade = (quoteResponse.trade ?? quoteResponse) as Record<string, unknown>;
   const quoteId = (quoteTrade.convert_quote_id ?? quoteTrade.id) as string | undefined;
   if (!quoteId) {
     throw new Error(`convert quote response missing convert_quote_id: ${JSON.stringify(quoteResponse)}`);
   }
+  // Persist the quote immediately to narrow the crash window between quote
+  // and commit (a committed-but-unrecorded trade cannot be safely re-quoted).
+  if (rawDir) writeFileSync(path.join(rawDir, "convert-quote.json"), jsonSafe(quoteResponse));
   const tradeResponse = (await cdpRequest("POST", `/api/v3/brokerage/convert/trade/${quoteId}`, {
     trade_id: quoteId,
     from_account: "USDC",
@@ -536,6 +574,9 @@ async function convertTranche(amount: number): Promise<{
   })) as Record<string, unknown>;
   let fill: unknown = tradeResponse;
   let spendableTimestamp = nowIso();
+  // Persist the committed trade immediately (crash window: commit done,
+  // status unknown).
+  if (rawDir) writeFileSync(path.join(rawDir, "convert-fill.json"), jsonSafe(fill));
   // Poll the convert trade until it is filled (bounded).
   for (let attempt = 0; attempt < 30; attempt++) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -544,7 +585,7 @@ async function convertTranche(amount: number): Promise<{
       `/api/v3/brokerage/convert/trade/${quoteId}?from_account=USDC&to_account=USD`,
     );
     const fillTrade = ((fill as Record<string, unknown>).trade ?? fill) as { status?: string };
-    if (fillTrade.status === "COMPLETE" || fillTrade.status === "FILLED" || fillTrade.status === "SUCCESS") {
+    if (typeof fillTrade.status === "string" && /COMPLETE|FILLED|SUCCESS/i.test(fillTrade.status)) {
       spendableTimestamp = nowIso();
       break;
     }
@@ -574,6 +615,11 @@ async function executeTranche(
   depositAddress: Address,
 ): Promise<void> {
   log(`--- ${tranche.id} ---`);
+  const recordFile = path.join(SESSIONS_DIR, `${tranche.id}.json`);
+  if (existsSync(recordFile)) {
+    log(`${tranche.id}: record already written; skipping (no re-runs)`);
+    return;
+  }
   const balance = await receiverUsdcBalance(receiverAddress());
   const amount =
     tranche.amountUsdc === null ? balance : tranche.amountUsdc;
@@ -655,8 +701,10 @@ async function executeTranche(
   }
 
   // Hop 2/3: convert quote + fill via Advanced Trade API.
-  const convert = await convertTranche(amount);
-  writeFileSync(path.join(rawDir, "convert-quote.json"), jsonSafe(convert.quote));
+  const convert = await convertTranche(amount, rawDir);
+  // Raw artifacts were persisted inside convertTranche at each stage; write
+  // the final pair only for what was not already on disk.
+  if (convert.quote !== null) writeFileSync(path.join(rawDir, "convert-quote.json"), jsonSafe(convert.quote));
   writeFileSync(path.join(rawDir, "convert-fill.json"), jsonSafe(convert.fill));
 
   const networkFeeUsd = 0; // Base sweeps are gasless for ERC20 transfer only when sponsored; recorded verbatim if nonzero

@@ -60,3 +60,26 @@ Each experiment enumerates its own threats in `protocol.md`. Recurring ones:
   precision) rather than a local wall-clock send timestamp; all other
   endpoints are unchanged. No tranche was re-run; the pass continued in
   ascending order with fresh quote/mid observations at convert time.
+- 2026-11-03, tranche `level1-1` (convert stage): the convert quote and commit
+  calls succeeded (trade `38e3ee63-593b-4107-8bfa-97539e42fd5c`) but the status
+  poll returned HTTP 401 because the ES256 JWT `uri` claim was signed over the
+  request path including its query string; the claim covers the path only.
+  Remediation: `cdpRequest` now signs the path without the query string; raw
+  artifacts are persisted immediately after the quote and after the commit to
+  narrow the crash window; the convert stage supports resume from a persisted
+  fill; and the fill-status matcher accepts the live `TRADE_STATUS_*` values.
+  `level1-1`'s committed trade was recovered verbatim via a read-only GET into
+  `sessions/raw/level1-1/convert-fill.json` (status `TRADE_STATUS_COMPLETED`,
+  total fee `$0.00`). Net effect on the measurement: `level1-1`'s
+  `timestamp_coinbase_credit` and `timestamp_fiat_spendable` are the recovery
+  time rather than the original fill moment (the trade had already completed
+  before recovery), and its quote response is absent (the fill response is the
+  verbatim record). The convert itself committed exactly once; no tranche was
+  re-sent or re-converted.
+- 2026-11-03, tranches `level20-1`/`level20-2` (convert stage): Base deposits
+  credit to the Coinbase account with a lag, so quoting immediately after an
+  on-chain send returned `ERROR_CODES_INSUFFICIENT_BALANCE` twice. Remediation:
+  the quote retries on `INSUFFICIENT_BALANCE` with a 30s backoff (bounded at
+  20 attempts), and tranches whose record file already exists are skipped
+  entirely so re-invocations never overwrite executed records. No funds were
+  added and no tranche was re-sent; the pass continued in ascending order.
