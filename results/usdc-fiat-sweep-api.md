@@ -1,9 +1,10 @@
 # Results: usdc-fiat-sweep-api
 
 Status: complete. First published release:
-[v1.0.1](https://github.com/clouatre-labs/x402-treasury-experiments/releases/tag/v1.0.1)
-(v1.0.0 was created by mistake against the wrong commit and deleted; GitHub
-permanently reserves the name, so v1.0.1 is the first published version).
+[v1.0.1](https://github.com/clouatre-labs/x402-treasury-experiments/releases/tag/v1.0.1).
+Version history note: v1.0.0 (wrong commit) and v1.0.2 (superseded before
+its metadata aligned) were deleted, and GitHub permanently reserves those
+names, so the published releases are v1.0.1 and v1.0.3 onward.
 Design: [`experiments/usdc-fiat-sweep-api/protocol.md`](../experiments/usdc-fiat-sweep-api/protocol.md)
 (sealed before execution). Records:
 [`experiments/usdc-fiat-sweep-api/sessions/`](../experiments/usdc-fiat-sweep-api/sessions/).

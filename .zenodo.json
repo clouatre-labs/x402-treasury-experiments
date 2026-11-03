@@ -5,7 +5,7 @@
   "access_right": "open",
   "license": "Apache-2.0",
   "language": "eng",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "publication_date": "2026-11-03",
   "creators": [
     {
@@ -16,7 +16,7 @@
   ],
   "related_identifiers": [
     {
-      "identifier": "https://github.com/clouatre-labs/x402-treasury-experiments/releases/tag/v1.0.2",
+      "identifier": "https://github.com/clouatre-labs/x402-treasury-experiments/releases/tag/v1.0.3",
       "relation": "isSupplementTo",
       "resource_type": "software"
     },
