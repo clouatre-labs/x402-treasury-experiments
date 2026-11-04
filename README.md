@@ -12,6 +12,9 @@ hosts pre-registered measurement experiments on the treasury side of the product
 [clouatre.ca](https://clouatre.ca), analogous in style to the sibling repositories
 [webmcp-description-benchmarks](https://github.com/clouatre-labs/webmcp-description-benchmarks)
 and [param-description-experiments](https://github.com/clouatre-labs/param-description-experiments).
+Scope note: the completed experiment measures on-exchange conversion (the Coinbase USD
+ledger), not bank settlement; costs downstream of the exchange (ACH/wire disbursement,
+hold periods) are unmeasured and are a planned endpoint for the v2 experiment.
 Each experiment is committed before it runs: a protocol and operator runbook are fixed in git,
 raw observations are collected verbatim into sessions, and the analyzed record validates against
 the schema in [DATA_DICTIONARY.md](DATA_DICTIONARY.md) in CI.
@@ -38,7 +41,8 @@ back to that sealed design.*
 | Slug | Question | Status | Key Result |
 |------|----------|--------|------------|
 | `usdc-fiat-sweep` | Retail Coinbase off-ramp cost (human-executed) | superseded pre-execution | n/a |
-| `usdc-fiat-sweep-api` | Automated Advanced Trade off-ramp cost across $1-$100+ tranches | complete | realized fee 0.00% on every tranche ($1 to full balance); convert fee quoted and charged at $0.00; USD spread 0% |
+| `usdc-fiat-sweep-api` | Coinbase Advanced Trade USDC/USD convert cost on Base across $1-$100+ tranches (issuer-redemption rail verification) | complete | realized fee 0.00% on every tranche ($1 to full balance); convert fee quoted and charged at $0.00; USD spread 0% |
+| `usdc-fiat-sweep-v2` | Kraken independent-exchange micro-sweep (realized vs advertised), CAD EFT disbursement, and Coinbase continuity at x402 micro-receipt volumes | pre-registration draft (review-clean, rail-verified) | n/a |
 
 ## Repository Layout
 

@@ -334,6 +334,224 @@ def _sweep_has_notes(data):
     return isinstance(data.get("notes"), str) and data["notes"].strip() != ""
 
 
+# usdc-fiat-sweep-v2 run-record schema (see DATA_DICTIONARY.md).
+SWEEP_V2_EXECUTION_STATUS_ENUM = [
+    "clean_fill",
+    "network_timeout",
+    "api_error",
+    "operator_interrupted",
+    "partial_fill",
+    "rejected_below_minimum",
+    "not_executed",
+    "not_executed_below_minimum",
+]
+
+SWEEP_V2_REQUIRED_NON_NULL_FIELDS = [
+    "tranche_id",
+    "replicate",
+    "provider_slug",
+    "arm",
+    "executed",
+    "synthetic",
+    "execution_status",
+    "is_latency_valid",
+    "fiat_currency",
+    "fixed_fee_usd",
+    "quoted_fee_usd",
+]
+
+SWEEP_V2_NULLABLE_FIELDS = [
+    "amount_usdc",
+    "fiat_received",
+    "order_txid",
+    "quoted_price",
+    "avg_fill_price",
+    "quoted_slippage_max",
+    "realized_slippage",
+    "pair_mid",
+    "mid_observed_at",
+    "timestamp_sent",
+    "timestamp_provider_credit",
+    "timestamp_fiat_spendable",
+    "timestamp_bank_arrival",
+    "tx_hash_in",
+    "funding_tx_hash",
+    "network_fee_usd",
+    "disbursement_fee_fiat",
+    "bank_intermediary_deduction",
+    "net_amount_settled",
+    "realized_fee_pct",
+    "spread_vs_mid_pct",
+    "notes",
+]
+
+SWEEP_V2_TIMESTAMP_FIELDS = [
+    "mid_observed_at",
+    "timestamp_sent",
+    "timestamp_provider_credit",
+    "timestamp_fiat_spendable",
+    "timestamp_bank_arrival",
+]
+
+SWEEP_V2_NUMBER_FIELDS = [
+    "fixed_fee_usd",
+    "quoted_fee_usd",
+    "amount_usdc",
+    "fiat_received",
+    "quoted_price",
+    "avg_fill_price",
+    "quoted_slippage_max",
+    "realized_slippage",
+    "pair_mid",
+    "network_fee_usd",
+    "disbursement_fee_fiat",
+    "bank_intermediary_deduction",
+    "net_amount_settled",
+    "realized_fee_pct",
+    "spread_vs_mid_pct",
+]
+
+
+def validate_v2_sweep_record(data):
+    """Validate one usdc-fiat-sweep-v2 run record against DATA_DICTIONARY.md."""
+    if not isinstance(data, dict):
+        return [f"top-level JSON value is not an object: {type(data).__name__}"]
+    errors = []
+    for field in SWEEP_V2_REQUIRED_NON_NULL_FIELDS:
+        if field not in data:
+            errors.append(f"missing field {field}")
+        elif data[field] is None:
+            errors.append(f"field {field} is null")
+    for field in SWEEP_V2_NULLABLE_FIELDS:
+        if field not in data:
+            errors.append(f"missing field {field}")
+    if errors:
+        return errors
+    for field in ("tranche_id", "provider_slug", "arm", "fiat_currency",
+                  "order_txid", "tx_hash_in", "funding_tx_hash", "notes"):
+        value = data.get(field)
+        if value is not None and not isinstance(value, str):
+            errors.append(f"field {field} is not a string or null")
+    for field in SWEEP_V2_TIMESTAMP_FIELDS:
+        value = data.get(field)
+        if value is not None and (not isinstance(value, str) or not _parse_timestamp(value)):
+            errors.append(f"field {field} is not an ISO 8601 timestamp")
+    if not _is_int(data.get("replicate")) or data["replicate"] < 1:
+        errors.append("field replicate is not an integer >= 1")
+    for field in ("executed", "synthetic", "is_latency_valid"):
+        if not isinstance(data.get(field), bool):
+            errors.append(f"field {field} is not a boolean")
+    if data.get("execution_status") not in SWEEP_V2_EXECUTION_STATUS_ENUM:
+        errors.append(f"execution_status is not one of {SWEEP_V2_EXECUTION_STATUS_ENUM}")
+    if data.get("provider_slug") not in ("kraken", "coinbase"):
+        errors.append("provider_slug is not 'kraken' or 'coinbase'")
+    if data.get("arm") not in ("A", "B", "C"):
+        errors.append("arm is not 'A', 'B', or 'C'")
+    if data.get("fiat_currency") not in ("USD", "CAD"):
+        errors.append("fiat_currency is not 'USD' or 'CAD'")
+    for field in SWEEP_V2_NUMBER_FIELDS:
+        value = data.get(field)
+        if value is not None and not _is_finite_number(value):
+            errors.append(f"field {field} is not a finite number or null")
+        elif value is not None and value < 0 and field not in (
+            "realized_slippage",
+            "spread_vs_mid_pct",
+        ):
+            # Slippage and spread on a sell can legitimately be negative when
+            # the fill lands above the reference price.
+            errors.append(f"field {field} is negative")
+    if errors:
+        return errors
+
+    executed = data["executed"]
+    notes_ok = _sweep_has_notes(data)
+    if not executed:
+        for field in ("amount_usdc", "fiat_received", "pair_mid", "mid_observed_at"):
+            if data.get(field) is not None:
+                errors.append(f"non-executed record has non-null {field}")
+        if not notes_ok:
+            errors.append("non-executed record requires a populated notes entry")
+        if data["execution_status"] not in (
+            "not_executed",
+            "not_executed_below_minimum",
+            "rejected_below_minimum",
+        ):
+            errors.append("non-executed record has an executed execution_status")
+    else:
+        if data["execution_status"] in (
+            "not_executed",
+            "not_executed_below_minimum",
+            "rejected_below_minimum",
+        ):
+            errors.append("executed record has a non-executed execution_status")
+        for field in ("timestamp_provider_credit", "timestamp_fiat_spendable"):
+            if data.get(field) is None and not notes_ok:
+                errors.append(f"executed record has null {field} without a populated notes entry")
+        if data.get("fiat_received") is None and not notes_ok:
+            errors.append("executed record has null fiat_received without a populated notes entry")
+        # Order-book consistency (Kraken arms only).
+        if data.get("provider_slug") == "kraken" and data.get("order_txid") is not None:
+            qp = data.get("quoted_price")
+            afp = data.get("avg_fill_price")
+            rsl = data.get("realized_slippage")
+            if _is_finite_number(qp) and qp > 0 and _is_finite_number(afp) and _is_finite_number(rsl):
+                expected = (afp - qp) / qp
+                if abs(rsl - expected) > 1e-6:
+                    errors.append("realized_slippage does not match quoted_price and avg_fill_price")
+        # Spread consistency.
+        amount = data.get("amount_usdc")
+        mid = data.get("pair_mid")
+        fiat = data.get("fiat_received")
+        svp = data.get("spread_vs_mid_pct")
+        if (
+            _is_finite_number(amount)
+            and amount > 0
+            and _is_finite_number(mid)
+            and mid > 0
+            and _is_finite_number(fiat)
+            and _is_finite_number(svp)
+        ):
+            expected = 100.0 * (amount * mid - fiat) / (amount * mid)
+            if abs(svp - expected) > 0.005:
+                errors.append("spread_vs_mid_pct does not match fiat_received, amount_usdc, pair_mid")
+        # Realized fee consistency (USDC-denominated legs only).
+        fixed = data.get("fixed_fee_usd")
+        net = data.get("network_fee_usd") or 0
+        rfp = data.get("realized_fee_pct")
+        if (
+            _is_finite_number(amount)
+            and amount > 0
+            and _is_finite_number(fixed)
+            and _is_finite_number(rfp)
+        ):
+            if abs(rfp - 100.0 * (fixed + net) / amount) > 0.005:
+                errors.append("realized_fee_pct does not match fixed_fee_usd, network_fee_usd, amount_usdc")
+    # Disbursement arm rules.
+    if data.get("arm") == "B" and data.get("tranche_id") == "cad-eft":
+        if data.get("disbursement_fee_fiat") is None and not notes_ok:
+            errors.append("disbursement record has null disbursement_fee_fiat without a populated notes entry")
+    else:
+        for field in ("timestamp_bank_arrival", "net_amount_settled", "bank_intermediary_deduction"):
+            if data.get(field) is not None:
+                errors.append(f"non-disbursement record has non-null {field}")
+    return errors
+
+
+def validate_v2_sweep_path(path):
+    try:
+        with open(path) as f:
+            data = _load_json_strict(f.read())
+    except (OSError, ValueError) as exc:
+        print(f"Failed to load {path}: {exc}")
+        return False
+    errors = validate_v2_sweep_record(data)
+    if errors:
+        for error in errors:
+            print(f"{path}: {error}")
+        return False
+    return True
+
+
 def validate_sweep_record(data):
     """Validate one usdc-fiat-sweep-api run record against DATA_DICTIONARY.md."""
     if not isinstance(data, dict):
@@ -747,6 +965,113 @@ def self_test():
     ):
         print("self-test FAILED: not_executed non-null amount not caught")
         return False
+
+    # usdc-fiat-sweep-v2 sweep-record validator.
+    MINIMAL_V2_EXECUTED = {
+        "tranche_id": "kraken-10",
+        "replicate": 1,
+        "provider_slug": "kraken",
+        "arm": "A",
+        "executed": True,
+        "synthetic": False,
+        "execution_status": "clean_fill",
+        "is_latency_valid": True,
+        "fiat_currency": "USD",
+        "amount_usdc": 10.0,
+        "fiat_received": 9.98,
+        "order_txid": "OABC-123",
+        "quoted_price": 0.9999,
+        "avg_fill_price": 0.9998,
+        "quoted_slippage_max": 0.001,
+        "realized_slippage": (0.9998 - 0.9999) / 0.9999,
+        "pair_mid": 0.99995,
+        "mid_observed_at": "2026-02-01T00:00:00Z",
+        "timestamp_sent": None,
+        "timestamp_provider_credit": "2026-02-01T00:00:10Z",
+        "timestamp_fiat_spendable": "2026-02-01T00:00:20Z",
+        "timestamp_bank_arrival": None,
+        "tx_hash_in": None,
+        "funding_tx_hash": None,
+        "network_fee_usd": None,
+        "fixed_fee_usd": 0.0,
+        "quoted_fee_usd": 0.0,
+        "disbursement_fee_fiat": None,
+        "bank_intermediary_deduction": None,
+        "net_amount_settled": None,
+        "realized_fee_pct": 0.0,
+        "spread_vs_mid_pct": None,
+        "notes": None,
+    }
+
+    def _v2_mutated(**changes):
+        record = _load_json_strict(json.dumps(MINIMAL_V2_EXECUTED))
+        record.update(changes)
+        return record
+
+    def _v2_deleted(key):
+        record = _load_json_strict(json.dumps(MINIMAL_V2_EXECUTED))
+        del record[key]
+        return record
+
+    if validate_v2_sweep_record(_load_json_strict(json.dumps(MINIMAL_V2_EXECUTED))):
+        errors = validate_v2_sweep_record(_load_json_strict(json.dumps(MINIMAL_V2_EXECUTED)))
+        print(f"self-test FAILED: minimal valid v2 record reported errors: {errors}")
+        return False
+    v2_cases = [
+        (_v2_deleted("provider_slug"), "missing field provider_slug", "v2 missing required key"),
+        (_v2_mutated(execution_status="exploded"), "execution_status is not one of", "v2 bad enum"),
+        (_v2_mutated(provider_slug="binance"), "provider_slug is not 'kraken' or 'coinbase'", "v2 bad provider"),
+        (_v2_mutated(arm="D"), "arm is not 'A', 'B', or 'C'", "v2 bad arm"),
+        (_v2_mutated(fiat_currency="EUR"), "fiat_currency is not 'USD' or 'CAD'", "v2 bad currency"),
+        (_v2_mutated(is_latency_valid="yes"), "is_latency_valid is not a boolean", "v2 non-bool latency flag"),
+        (_v2_mutated(replicate=0), "replicate is not an integer >= 1", "v2 bad replicate"),
+        (_v2_mutated(timestamp_bank_arrival="2026-02-01T01:00:00Z"), "non-disbursement record has non-null timestamp_bank_arrival", "v2 bank field outside arm B"),
+        (
+            _v2_mutated(realized_slippage=0.5),
+            "realized_slippage does not match quoted_price and avg_fill_price",
+            "v2 slippage mismatch",
+        ),
+        (
+            _v2_mutated(spread_vs_mid_pct=5.0),
+            "spread_vs_mid_pct does not match fiat_received, amount_usdc, pair_mid",
+            "v2 spread mismatch",
+        ),
+    ]
+    for record, substring, label in v2_cases:
+        errors = validate_v2_sweep_record(record)
+        if not any(substring in error for error in errors):
+            print(f"self-test FAILED: {label} not caught: {errors}")
+            return False
+    v2_not_executed = _load_json_strict(json.dumps(MINIMAL_V2_EXECUTED))
+    v2_not_executed.update(
+        {
+            "executed": False,
+            "execution_status": "not_executed_below_minimum",
+            "amount_usdc": None,
+            "fiat_received": None,
+            "pair_mid": None,
+            "mid_observed_at": None,
+            "is_latency_valid": False,
+            "order_txid": None,
+            "quoted_price": None,
+            "avg_fill_price": None,
+            "realized_slippage": None,
+            "timestamp_provider_credit": None,
+            "timestamp_fiat_spendable": None,
+            "notes": "residue below provider minimum trade size",
+        }
+    )
+    if validate_v2_sweep_record(v2_not_executed):
+        print(f"self-test FAILED: v2 not_executed record rejected: {validate_v2_sweep_record(v2_not_executed)}")
+        return False
+    v2_bad_ne = _load_json_strict(json.dumps(v2_not_executed))
+    v2_bad_ne["notes"] = None
+    if not any(
+        "non-executed record requires a populated notes entry" in error
+        for error in validate_v2_sweep_record(v2_bad_ne)
+    ):
+        print("self-test FAILED: v2 not_executed missing notes not caught")
+        return False
     # Discovery mode: a protocol-only directory (no sessions content) is skipped
     # as pre-registration state; sessions content or no protocol.md with missing
     # analysis.json must fail; empty experiments/ passes.
@@ -836,6 +1161,25 @@ def validate_discovery(base):
                     if not validate_sweep_path(record_path):
                         all_ok = False
                 continue
+            if exp_dir.name == "usdc-fiat-sweep-v2":
+                # v2 sweep records under sessions/ are validated with the v2
+                # schema; funding.json and raw/ are not per-tranche records.
+                sessions_dir = exp_dir / "sessions"
+                v2_records = (
+                    sorted(sessions_dir.glob("*.json")) if sessions_dir.is_dir() else []
+                )
+                if not v2_records:
+                    print(
+                        f"Skipping {exp_dir.name}: pre-registration state "
+                        "(no analysis.json, no sweep run records yet)"
+                    )
+                    continue
+                for record_path in v2_records:
+                    if record_path.name == "funding.json":
+                        continue
+                    if not validate_v2_sweep_path(record_path):
+                        all_ok = False
+                continue
             sessions_dir = exp_dir / "sessions"
             has_sessions_content = sessions_dir.is_dir() and any(
                 p.is_file() and p.name != ".gitkeep" for p in sessions_dir.rglob("*")
@@ -858,14 +1202,19 @@ def main():
     if "--self-test" in sys.argv:
         sys.exit(0 if self_test() else 1)
     sweep_mode = "--sweep" in sys.argv
+    sweep_v2_mode = "--sweep-v2" in sys.argv
     file_args = [
-        arg for arg in sys.argv[1:] if arg not in ("--self-test", "--sweep")
+        arg
+        for arg in sys.argv[1:]
+        if arg not in ("--self-test", "--sweep", "--sweep-v2")
     ]
     if file_args:
-        all_ok = all(
-            validate_path(pathlib.Path(arg), sweep_record=sweep_mode)
-            for arg in file_args
-        )
+        all_ok = True
+        for arg in file_args:
+            if sweep_v2_mode:
+                all_ok = all_ok and validate_v2_sweep_path(arg)
+            else:
+                all_ok = all_ok and validate_path(pathlib.Path(arg), sweep_record=sweep_mode)
         sys.exit(0 if all_ok else 1)
     sys.exit(0 if validate_discovery(pathlib.Path(".").resolve()) else 1)
 

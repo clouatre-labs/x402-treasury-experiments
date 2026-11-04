@@ -12,13 +12,19 @@ Design: [`experiments/usdc-fiat-sweep-api/protocol.md`](../experiments/usdc-fiat
 ## Headline result
 
 Across all 8 executed tranches totaling $157.25908 USDC converted to USD via
-the Coinbase Advanced Trade convert API, the convert fee quoted and charged
-was $0.00, the realized fee was 0.00%, and the USD spread against the $1.00
-USDC mid was 0%: each tranche converted 1:1 into fiat (`fiat_received` equals
-`amount_usdc` in every record). The only realized cost of the sweep was Base
-gas for the eight on-chain transfer legs: total gas spent was 0.00000654
-ETH (summed from the committed transaction receipts), under 5% of the
-0.00014 ETH float seeded at funding (approximately $0.31). The
+the Coinbase Advanced Trade convert API on Base, the convert fee quoted and
+charged was $0.00, the realized fee was 0.00%, and the USD spread against the
+$1.00 USDC mid was 0%: each tranche converted 1:1 into fiat (`fiat_received`
+equals `amount_usdc` in every record). Scope caveat: this result is a
+verification of Coinbase's published 1:1 USDC/USD issuer-redemption policy on
+its own custodial rail at sub-$100 volumes; it is not evidence that fiat
+off-ramping in general carries zero conversion cost, and it cannot detect tier
+boundaries or spread behavior at higher volumes (v2 targets both). The only
+realized cost of the sweep was Base gas for the eight on-chain transfer legs:
+total gas spent was 0.00000654 ETH (summed from the committed transaction
+receipts), under 5% of the 0.00014 ETH float seeded at funding (approximately
+$0.31). This gas figure is a point-in-time observation of Base base-fee levels
+at execution and must not be read as a fixed or typical cost. The
 pre-registered ninth tranche
 (`full-2`) was recorded as `not_executed`: a single-balance wallet has no
 residual balance after `full-1` runs.
@@ -60,11 +66,17 @@ recipe's fee-vs-amount chart described above (see
 
 ## Latency
 
-Clean send-to-spendable data points exist for the last three executed
-tranches: 3m56s (`level20-2`), 4m23s (`level100-1`), and 5s (`full-1`). The
-`timestamp_coinbase_credit`/`timestamp_fiat_spendable` values of the first
-five tranches are recovery-time artifacts of the `level1-1` remediation, not
-fill moments, and must not be read as latency findings (see Limitations).
+Exploratory only: clean send-to-spendable data points exist for the last
+three executed tranches: 3m56s (`level20-2`), 4m23s (`level100-1`), and 5s
+(`full-1`). With n=3 no statistical inference (distribution, p50/p95, SLA) is
+supported; these figures are qualitative observations of this rail on this
+date. The `timestamp_coinbase_credit`/`timestamp_fiat_spendable` values of
+the first five tranches are recovery-time artifacts of the `level1-1`
+remediation, not fill moments, and must not be read as latency findings (see
+Limitations). Boundary note: `fiat_spendable` means spendable on the Coinbase
+USD ledger, not delivered to an external bank account; bank-disbursement cost
+and latency are out of scope for this experiment and are a planned v2
+endpoint.
 
 ## Limitations
 

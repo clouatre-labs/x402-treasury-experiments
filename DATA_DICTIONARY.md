@@ -110,3 +110,45 @@ Per-tranche JSON records stored directly under `experiments/usdc-fiat-sweep-api/
 | `notes` | string \| null | yes | Optional note (e.g. failure reason, missing-value explanation) |
 
 The template's `analysis.json` schema still governs the final `experiments/usdc-fiat-sweep-api/analysis.json` after the run, with `control_condition` = "published Advanced Trade taker fee schedule", `treatment_condition` = "realized conversion cost per tranche (automated)", and `model` = "n/a (script-executed off-ramp)".
+
+## usdc-fiat-sweep-v2 run-record schema
+
+Per-transaction JSON records stored under `experiments/usdc-fiat-sweep-v2/sessions/` (raw API artifacts under `sessions/raw/`). Records are written and schema-validated by `experiments/usdc-fiat-sweep-v2/sweep.ts`. Extends the `usdc-fiat-sweep-api` schema with provider/arm identification, mechanical execution-status and latency-validity instrumentation, order-book fill and slippage fields, and CAD disbursement fields.
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| `tranche_id` | string | no | Transaction identifier (e.g. `kraken-10`, `kraken-residue`, `cad-20`, `cad-eft`, `coinbase-5-1`) |
+| `replicate` | integer | no | Replicate number within the tranche level (>= 1) |
+| `provider_slug` | string | no | `kraken` or `coinbase` |
+| `arm` | string | no | `A` (independent exchange), `B` (disbursement), `C` (continuity) |
+| `executed` | boolean | no | True if the transaction was executed; false for pre-registered `not_executed` outcomes |
+| `synthetic` | boolean | no | True only in `--dry-run` rehearsal records, which are never committed to `sessions/` |
+| `execution_status` | string | no | Enum: `clean_fill`, `network_timeout`, `api_error`, `operator_interrupted`, `partial_fill`, `rejected_below_minimum`, `not_executed`, `not_executed_below_minimum` |
+| `is_latency_valid` | boolean | no | True only if both latency endpoints of the measured hop were captured programmatically in the primary execution thread with no retry, exception, or recovery intervention; set by the script, never by hand |
+| `amount_usdc` | number \| null | yes | USDC amount converted; null for disbursement-only records (`cad-eft`) and non-executed outcomes, each of which requires a populated `notes` entry |
+| `fiat_currency` | string | no | Fiat leg currency: `USD` or `CAD` |
+| `fiat_received` | number \| null | yes | Fiat amount received after fees in `fiat_currency`; null only for non-executed outcomes, which require a populated `notes` entry |
+| `order_txid` | string \| null | yes | Kraken order transaction identifier, verbatim from the API; null for non-Kraken or non-executed records |
+| `quoted_price` | number \| null | yes | Order-book price at order submission (top-of-book ask for the relevant pair); null only for non-executed or non-order-book records with populated `notes` |
+| `avg_fill_price` | number \| null | yes | Volume-weighted average fill price, verbatim from the API; null only for non-executed or non-order-book records with populated `notes` |
+| `quoted_slippage_max` | number \| null | yes | Pre-registered maximum acceptable slippage bound for the tranche (fraction); null only for non-order-book records with populated `notes` |
+| `realized_slippage` | number \| null | yes | Derived: `(avg_fill_price - quoted_price) / quoted_price` for sells; null per the same rules as `avg_fill_price` |
+| `pair_mid` | number \| null | yes | Observed mid for the relevant pair (USDC/USD or USDC/CAD) at execution time; null only for non-executed records |
+| `mid_observed_at` | string \| null | yes | ISO 8601 timestamp with UTC offset at which `pair_mid` was captured; null only for non-executed records |
+| `timestamp_sent` | string \| null | yes | Timestamp the on-chain send was made; null only if the hop failed or was unobserved, which requires a populated `notes` entry |
+| `timestamp_provider_credit` | string \| null | yes | Timestamp the provider credited the funds (on-chain credit, convert fill, or order fill); null per the same hop-failure rules |
+| `timestamp_fiat_spendable` | string \| null | yes | Timestamp the fiat became spendable on the provider ledger; null per the same hop-failure rules |
+| `timestamp_bank_arrival` | string \| null | yes | Disbursement arm only: timestamp fiat arrived at the external bank; null for non-disbursement records and for any failed arrival hop with populated `notes` |
+| `tx_hash_in` | string \| null | yes | On-chain transaction hash of the inbound Base transfer, where applicable; null per populated-`notes` rules |
+| `funding_tx_hash` | string \| null | yes | On-chain hash of the pre-registered funding transfer to the receiver wallet; identical across records of the experiment; null requires populated `notes` |
+| `network_fee_usd` | number \| null | yes | On-chain gas for the relevant legs in USD; null only when zero, which requires populated `notes` stating this |
+| `fixed_fee_usd` | number | no | Provider fixed fee in USD terms; 0 allowed |
+| `quoted_fee_usd` | number | no | Fee quoted by the provider at execution, verbatim, in USD terms; 0 allowed |
+| `disbursement_fee_fiat` | number \| null | yes | Disbursement arm: provider withdrawal fee in `fiat_currency` (EFT: 0.35% of proceeds); null for non-disbursement records |
+| `bank_intermediary_deduction` | number \| null | yes | Disbursement arm: deduction observed between provider debit and bank arrival, in `fiat_currency`; null until arrival is observed or the hop fails (populated `notes`) |
+| `net_amount_settled` | number \| null | yes | Disbursement arm: amount that actually landed in the bank, in `fiat_currency`; null until arrival is observed or the hop fails (populated `notes`) |
+| `realized_fee_pct` | number \| null | yes | Derived: `(fixed_fee_usd + network_fee_usd) / amount_usdc * 100`; null for non-executed records without a USDC amount |
+| `spread_vs_mid_pct` | number \| null | yes | Derived from `fiat_received`, `amount_usdc`, and `pair_mid`; null for non-executed records |
+| `notes` | string \| null | yes | Optional note (failure reason, missing-value explanation) |
+
+The template's `analysis.json` schema still governs the final `experiments/usdc-fiat-sweep-v2/analysis.json` after the run, with `control_condition` = "advertised provider fee schedules (Kraken stablecoin schedule 0.20%; Coinbase 1:1 convert)", `treatment_condition` = "realized conversion and disbursement cost per transaction (automated)", and `model` = "n/a (script-executed off-ramp)".
