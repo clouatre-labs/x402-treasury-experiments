@@ -66,7 +66,7 @@ back to that sealed design.*
 
 4. Regenerate figures from the recipes in `recipe/`.
 
-Each experiment directory under `experiments/` contains its protocol, operator runbook, record-extraction instructions, raw sessions, and analysis records, so any result can be traced back to its pre-registered design.
+Each experiment directory under `experiments/` contains its protocol, operator runbook, record-extraction instructions, raw sessions, and analysis records. Any result can therefore be traced back to its pre-registered design.
 
 ## Results
 
@@ -74,7 +74,7 @@ Each experiment directory under `experiments/` contains its protocol, operator r
 
 **Status:** complete (one execution pass, 2026-11-04; no tranche re-runs). Design sealed at commit `60ecd00` before execution; every deviation from the sealed script is recorded verbatim in [METHODOLOGY.md, Execution Deviations](METHODOLOGY.md#execution-deviations-recorded-per-protocol-stop-and-record). Full report: [results/usdc-fiat-sweep-v2.md](results/usdc-fiat-sweep-v2.md). Records: [experiments/usdc-fiat-sweep-v2/sessions/](experiments/usdc-fiat-sweep-v2/sessions/).
 
-Headline: the independent exchange charged exactly its advertised rate and the issuer rail reproduced v1's zero-fee finding at x402 micro-receipt volumes; the CAD disbursement leg is a recorded negative result with a structural cause. Realized vs advertised per transaction:
+Headline: the independent exchange charged exactly its advertised rate, and the issuer rail reproduced v1's zero-fee finding at x402 micro-receipt volumes. The CAD disbursement leg is a recorded negative result with a structural cause. Realized vs advertised per transaction:
 
 *Table 2: Realized vs advertised cost per transaction, one execution pass. All numbers verbatim from committed records; fiat received equals amount minus fee (1:1 on Coinbase, 0.20% on Kraken); Kraken quote-context (fill price vs mid) was re-observed post-recovery and is flagged in the records and in Figure 3.*
 
@@ -87,9 +87,11 @@ Headline: the independent exchange charged exactly its advertised rate and the i
 | `cad-20` | B | - | - | 0.20% + 0.35% | `not_executed_below_minimum` |
 | `cad-eft` | B | - | - | 0.35% | `not_executed_below_minimum` |
 
-Total realized exchange fees: $0.20196, within the pre-registered <$1 budget. The two Arm B rows are recorded outcomes, not missing data: the sealed residue formula sells the entire spendable USDC balance before the fixed-size cad-20 tranche, so the CAD measurement is arithmetically impossible for any working capital; pass 2 reserves the Arm B amount (or orders Arm B before the residue). All executed tranches are recovery-assisted (`is_latency_valid = false` throughout, per the mechanical exclusion rule), so this pass supports no latency claims; fee and price endpoints come verbatim from executed fills. `coinbase-5-1` converted double principal (two 1:1, $0.00 commits after a crash between commit and record write).
+Total realized exchange fees: $0.20196, within the pre-registered <$1 budget. The two Arm B rows are recorded outcomes, not missing data: the sealed residue formula sells the entire spendable USDC balance before the fixed-size cad-20 tranche, so the CAD measurement is arithmetically impossible for any working capital; pass 2 reserves the Arm B amount (or orders Arm B before the residue).
 
-Against the protocol's four questions: **Q1** — the independent exchange (Kraken) charged exactly its advertised 0.20% taker fee on both executed USD sells, with the realized fill price 0.005% above the observed mid and realized slippage −0.01% (better than the quoted ask); no hidden spread is measurable at these volumes. **Q2** — unanswered with cause: the sealed tranche design cannot produce the CAD measurement (structural residue-formula inconsistency), recorded as outcomes, not repaired mid-pass. **Q3** — v1's zero-fee continuity holds: Coinbase convert committed 1:1 at $0.00 fee on both Arm C tranches. **Q4** — the gateway architecture is unmeasurable at this volume (one provider has no off-ramp product; the other's effective cost is off-scale), recorded as a selection-survey finding. Practitioner takeaway for x402-style treasury flows at $5–$20 per receipt: the issuer rail (Coinbase convert) is free but latency-unvalidated here, the independent exchange costs exactly its advertised 0.20%, and a same-pass CAD disbursement endpoint must be designed against the residue formula, not appended after it.
+All executed tranches are recovery-assisted (`is_latency_valid = false` throughout, per the mechanical exclusion rule), so this pass supports no latency claims; fee and price endpoints come verbatim from executed fills. `coinbase-5-1` converted double principal (two 1:1, $0.00 commits after a crash between commit and record write).
+
+Against the protocol's four questions: **Q1**: the independent exchange (Kraken) charged exactly its advertised 0.20% taker fee on both executed USD sells, with the realized fill price 0.005% above the observed mid and realized slippage −0.01% (better than the quoted ask); no hidden spread is measurable at these volumes. **Q2**: unanswered with cause. The sealed tranche design cannot produce the CAD measurement (structural residue-formula inconsistency); the outcome is recorded, not repaired mid-pass. **Q3**: v1's zero-fee continuity holds on both Arm C tranches. **Q4**: the gateway architecture is unmeasurable at this volume (one provider has no off-ramp product; the other's effective cost is off-scale), recorded as a selection-survey finding. Practitioner takeaway for x402-style treasury flows at $5–$20 per receipt: the issuer rail (Coinbase convert) is free but latency-unvalidated here, and a same-pass CAD disbursement endpoint must be designed against the residue formula, not appended after it.
 
 Pipeline of the sealed pass:
 
@@ -137,11 +139,13 @@ jq -r '.notes' experiments/usdc-fiat-sweep-v2/sessions/cad-20.json
 
 **Status:** complete. **First published release:** [v1.0.1](https://github.com/clouatre-labs/x402-treasury-experiments/releases/tag/v1.0.1). Version history note: v1.0.0 (wrong commit) and v1.0.2 (superseded before its metadata aligned) were deleted, and GitHub permanently reserves those names, so the published releases are v1.0.1 and v1.0.3 onward.
 
-Across all 8 executed tranches ($1, $1, $5, $5, $20, $20, $100, and the $5.25908 residual, totaling $157.25908 USDC converted via the Coinbase Advanced Trade convert API), the convert fee quoted and charged was $0.00, the realized fee was 0.00%, and the USD spread against the $1.00 USDC mid was 0%: each tranche converted 1:1 into fiat (`fiat_received` equals `amount_usdc` in every record). The only realized cost of the sweep was Base gas for the eight on-chain transfer legs: total gas spent was 0.00000654 ETH (summed from the committed transaction receipts), under 5% of the 0.00014 ETH float seeded at funding (approximately $0.31). The pre-registered ninth tranche (`full-2`) was recorded as `not_executed`: a single-balance wallet has no residual balance after `full-1` runs.
+Across all 8 executed tranches, $157.25908 USDC was converted via the Coinbase Advanced Trade convert API ($1, $1, $5, $5, $20, $20, $100, and the $5.25908 residual). The convert fee quoted and charged was $0.00, the realized fee was 0.00%, and the USD spread against the $1.00 USDC mid was 0%. Each tranche converted 1:1 into fiat (`fiat_received` equals `amount_usdc` in every record).
+
+The only realized cost of the sweep was Base gas for the eight on-chain transfer legs: total gas spent was 0.00000654 ETH (summed from the committed transaction receipts), under 5% of the 0.00014 ETH float seeded at funding (approximately $0.31). The pre-registered ninth tranche (`full-2`) was recorded as `not_executed`: a single-balance wallet has no residual balance after `full-1` runs.
 
 The full written report, per-tranche record table, and reproduction commands live in [results/usdc-fiat-sweep-api.md](results/usdc-fiat-sweep-api.md).
 
-The per-tranche fee result is a constant: the convert fee quoted and charged was $0.00 and the realized fee was 0.00% on all 8 executed tranches, and [Table 1 in the results report](results/usdc-fiat-sweep-api.md) states this more precisely than a chart of zeros. The fee-vs-amount chart that the frozen recipe pipeline emits is kept as a pipeline artifact under `figures/` but is not embedded here. Time from on-chain send to fiat spendable (clean tranches only):
+The per-tranche fee result is a constant: the convert fee quoted and charged was $0.00 and the realized fee was 0.00% on all 8 executed tranches. [Table 1 in the results report](results/usdc-fiat-sweep-api.md) states this more precisely than a chart of zeros. The fee-vs-amount chart that the frozen recipe pipeline emits is kept as a pipeline artifact under `figures/` but is not embedded here. Time from on-chain send to fiat spendable (clean tranches only):
 
 ![Fiat lands spendable within five minutes of the send](figures/usdc_fiat_sweep_hop_latency_clean.png)
 
@@ -149,7 +153,7 @@ The per-tranche fee result is a constant: the convert fee quoted and charged was
 
 Also intentionally absent: the frozen recipe's fee-decomposition figure (every cost component is zero, so there is nothing to decompose) and the recipe's fee-vs-amount chart described above.
 
-**Limitations.** (1) `timestamp_coinbase_credit`/`timestamp_fiat_spendable` for the first five tranches (`level1-1`, `level1-2`, `level20-1`, `level5-1`, `level5-2`) are recovery-time artifacts of the `level1-1` remediation (see [METHODOLOGY.md, Execution Deviations](METHODOLOGY.md#execution-deviations-recorded-per-protocol-stop-and-record)), not fill moments; latency findings rest on the three clean points in Figure 4. (2) The frozen recipe's fee-vs-amount chart overlays the pre-execution `ADVERTISED_FIXED_FEE_USD` constant in `recipe/usdc_fiat_sweep_common.py`; the live Advanced Trade taker schedule was recorded verbatim in the raw artifacts, but the frozen recipe's overlay constant was not updated after execution. (3) This is a single-wallet, operator-executed measurement: timestamps come from the operator script rather than an independent observer, and no independent replication exists.
+**Limitations.** (1) `timestamp_coinbase_credit`/`timestamp_fiat_spendable` for the first five tranches (`level1-1`, `level1-2`, `level20-1`, `level5-1`, `level5-2`) are recovery-time artifacts of the `level1-1` remediation (see [METHODOLOGY.md, Execution Deviations](METHODOLOGY.md#execution-deviations-recorded-per-protocol-stop-and-record)), not fill moments. Latency findings rest on the three clean points in Figure 4. (2) The frozen recipe's fee-vs-amount chart overlays the pre-execution `ADVERTISED_FIXED_FEE_USD` constant in `recipe/usdc_fiat_sweep_common.py`; the live Advanced Trade taker schedule was recorded verbatim in the raw artifacts, but the frozen recipe's overlay constant was not updated after execution. (3) This is a single-wallet, operator-executed measurement: timestamps come from the operator script rather than an independent observer, and no independent replication exists.
 
 ## Software Versions
 
