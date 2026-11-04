@@ -1,0 +1,9 @@
+{
+  "schema_version": "1.0.0",
+  "experiment": "usdc-fiat-sweep-v2",
+  "funding_tx_hash": "0xe76e52f9a2acc27f8702dd255385be124b174cad4b57c456dfcfaa6bb46ac439",
+  "usdc_buy_amount_usd": 40,
+  "eth_buy_amount": 0.0002,
+  "note": "single pre-registered funding transfer to the receiver wallet; working-capital placement, not measurement",
+  "recorded_at": "2026-11-04T18:04:14+00:00"
+}

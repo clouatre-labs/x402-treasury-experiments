@@ -1,0 +1,36 @@
+{
+  "OLN7MO-CSKO7-U3Y6BN": {
+    "refid": null,
+    "userref": 0,
+    "status": "closed",
+    "opentm": 1793816984.674771,
+    "starttm": 0,
+    "descr": {
+      "pair": "USDCUSD",
+      "aclass": "forex",
+      "type": "sell",
+      "ordertype": "market",
+      "price": "0",
+      "price2": "0",
+      "leverage": "none",
+      "order": "sell 91.00000000 USDCUSD @ market",
+      "close": ""
+    },
+    "vol": "91.00000000",
+    "vol_exec": "91.00000000",
+    "cost": "90.98180000",
+    "fee": "0.18196360",
+    "price": "0.9998",
+    "stopprice": "0.00000000",
+    "limitprice": "0.00000000",
+    "oflags": "fciq",
+    "time_in_force": "gtc",
+    "trades": [
+      "TCTLTY-5GT72-R2XITT"
+    ],
+    "reason": null,
+    "closetm": 1793816984.674771,
+    "expiretm": 0,
+    "misc": ""
+  }
+}

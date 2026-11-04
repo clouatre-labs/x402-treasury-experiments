@@ -337,7 +337,7 @@ async function krakenSell(def: TrancheDef, amountUsdc: number, rawDir: string): 
   let filled = false;
   let orderInfo: Record<string, unknown> = {};
   for (let attempt = 0; attempt < 30; attempt++) {
-    const qo = await krakenPrivate("QueryOrders", { pair, txid });
+    const qo = await krakenPrivate("QueryOrders", { pair, txid, trades: "true" });
     const info = qo[txid] as Record<string, unknown> | undefined;
     if (info && (info.status === "closed" || info.status === "expired")) {
       filled = true;
@@ -354,7 +354,8 @@ async function krakenSell(def: TrancheDef, amountUsdc: number, rawDir: string): 
     writeRecord(def, record);
     return;
   }
-  const trades = await krakenPrivate("QueryTrades", { txid });
+  const tradeIds = (orderInfo.trades as string[] | undefined)?.join(",") ?? txid;
+  const trades = await krakenPrivate("QueryTrades", { txid: tradeIds });
   writeFileSync(path.join(rawDir, "query-trades.json"), jsonSafe(trades));
   writeFileSync(path.join(rawDir, "query-orders.json"), jsonSafe(orderInfo));
 
@@ -480,21 +481,38 @@ async function coinbaseConvert(def: TrancheDef, amountUsdc: number, rawDir: stri
     account: privateKeyToAccount(requireEnv("X402_RECEIVER_PRIVATE_KEY") as `0x${string}`),
   });
   const client = createPublicClient({ chain: base, transport: http(BASE_RPC) });
-  const txHash = await walletClient.writeContract({
-    address: USDC_BASE,
-    abi: erc20Abi,
-    functionName: "transfer",
-    args: [depositAddress as Address, parseUnits(amountUsdc.toFixed(6), 6)],
-    chain: base,
-    account: walletClient.account!,
-  });
-  const receipt = await client.waitForTransactionReceipt({ hash: txHash });
-  if (receipt.status !== "success") throw new Error(`${def.id}: on-chain transfer reverted: ${txHash}`);
-  mkdirSync(rawDir, { recursive: true });
-  writeFileSync(path.join(rawDir, "tx-receipt.json"), jsonSafe(receipt));
-  const block = await client.getBlock({ blockNumber: receipt.blockNumber });
+  // Resume support: if the transfer receipt was already persisted, the
+  // on-chain hop already executed; recover verbatim and continue from Hop 2
+  // (see METHODOLOGY.md Execution Deviations).
+  const receiptPath = path.join(rawDir, "tx-receipt.json");
+  let txHash: `0x${string}`;
+  let receipt: Record<string, unknown>;
+  let resumedFromReceipt = false;
+  if (existsSync(receiptPath)) {
+    receipt = JSON.parse(readFileSync(receiptPath, "utf8")) as Record<string, unknown>;
+    txHash = receipt.transactionHash as `0x${string}`;
+    resumedFromReceipt = true;
+  } else {
+    txHash = await walletClient.writeContract({
+      address: USDC_BASE,
+      abi: erc20Abi,
+      functionName: "transfer",
+      args: [depositAddress as Address, parseUnits(amountUsdc.toFixed(6), 6)],
+      chain: base,
+      account: walletClient.account!,
+    });
+    const r = await client.waitForTransactionReceipt({ hash: txHash });
+    if (r.status !== "success") throw new Error(`${def.id}: on-chain transfer reverted: ${txHash}`);
+    mkdirSync(rawDir, { recursive: true });
+    writeFileSync(receiptPath, jsonSafe(r));
+    receipt = r as unknown as Record<string, unknown>;
+  }
+  // blockHash is zeroed on OP-stack receipts here; derive the timestamp from
+  // the receipt's blockTimestamp field (v1 precedent) to avoid a redundant
+  // getBlock round-trip that crashed on a transient RPC hiccup.
+  const blockTs = Number((receipt as { blockTimestamp?: string }).blockTimestamp ?? 0);
   record.tx_hash_in = txHash;
-  record.timestamp_sent = new Date(Number(block.timestamp) * 1000).toISOString();
+  record.timestamp_sent = blockTs > 0 ? new Date(blockTs * 1000).toISOString() : nowIso();
   record.timestamp_provider_credit = nowIso();
 
   // Hop 2: deposit-credit wait (v1 finding: Base deposits credit with a lag).
@@ -505,7 +523,10 @@ async function coinbaseConvert(def: TrancheDef, amountUsdc: number, rawDir: stri
       const quote = (await cdpRequest("POST", "/api/v3/brokerage/convert/quote", {
         from_account: "USDC",
         to_account: "USD",
-        from_amount: String(amountUsdc),
+        // v1 live-proven field shape (usdc-fiat-sweep-api sweep.ts): the API
+        // rejects `from_amount` as an unknown field; `amount` carries the
+        // same 1:1 USDC/USD value. See METHODOLOGY.md Execution Deviations.
+        amount: amountUsdc.toFixed(2),
       })) as Record<string, unknown>;
       writeFileSync(path.join(rawDir, "convert-quote.json"), jsonSafe(quote));
       const quoteTrade = (quote.trade as Record<string, unknown> | undefined) ?? quote;
@@ -522,10 +543,20 @@ async function coinbaseConvert(def: TrancheDef, amountUsdc: number, rawDir: stri
       )) as Record<string, unknown>;
       writeFileSync(path.join(rawDir, "convert-fill.json"), jsonSafe(fill));
       const tradeInfo = (fill.trade as Record<string, unknown> | undefined) ?? fill;
-      const totalFee = Number((tradeInfo.total_fee as string | undefined) ?? "0");
+      // total_fee drift repair (see METHODOLOGY.md Execution Deviations):
+      // v1 recorded total_fee as a plain string; the live API now returns a
+      // nested object ({ amount: { value } }). Parse either shape verbatim.
+      const rawTotalFee = tradeInfo.total_fee as unknown;
+      const totalFeeValue =
+        rawTotalFee !== null && typeof rawTotalFee === "object"
+          ? ((rawTotalFee as Record<string, Record<string, string>>).amount?.value ?? "0")
+          : String(rawTotalFee ?? "0");
+      const totalFee = Number(totalFeeValue);
       record.executed = true;
       record.execution_status = "clean_fill";
-      record.is_latency_valid = true;
+      // Mechanical exclusion rule: if this run resumed from a persisted
+      // receipt, deposit-credit polling exceeded the pre-registered window.
+      record.is_latency_valid = !resumedFromReceipt;
       record.fiat_received = amountUsdc;
       record.fixed_fee_usd = totalFee;
       record.quoted_fee_usd = totalFee;
@@ -537,7 +568,9 @@ async function coinbaseConvert(def: TrancheDef, amountUsdc: number, rawDir: stri
         (100 * (amountUsdc * mid.usdcMid - amountUsdc) / (amountUsdc * mid.usdcMid)).toFixed(6),
       );
       record.timestamp_fiat_spendable = nowIso();
-      record.notes = "on-chain send and convert committed once; no retries";
+      record.notes = resumedFromReceipt
+        ? "on-chain send recovered from persisted receipt (polling window exceeded pre-registered threshold); convert committed once; no retries"
+        : "on-chain send and convert committed once; no retries";
       writeRecord(def, record);
       credited = true;
       break;
@@ -546,6 +579,10 @@ async function coinbaseConvert(def: TrancheDef, amountUsdc: number, rawDir: stri
       // error after several attempts is recorded via the final note.
       const msg = err instanceof Error ? err.message : String(err);
       if (attempt === 19) {
+        // The on-chain hop executed (receipt persisted), so the tranche is
+        // executed even though the convert never succeeded; the schema
+        // requires executed=true for any non-not_executed status.
+        record.executed = true;
         record.execution_status = "api_error";
         record.is_latency_valid = false;
         record.notes = `convert quote never succeeded within polling window: ${msg}`;
@@ -800,11 +837,17 @@ async function modeExecute(): Promise<void> {
   const funding = JSON.parse(readFileSync(FUNDING_FILE, "utf8")) as { funding_tx_hash: string };
 
   // Arm A/B sell tranches draw on the Kraken USDC balance; the receiver wallet
-  // only funds the Coinbase continuity arm.
-  const krakenBalance = await krakenPrivate("Balance", {});
-  const krakenUsdc = Number(krakenBalance.USDC ?? 0);
-  if (krakenUsdc < 35) {
-    die(`Kraken USDC balance ${krakenUsdc} is below the $35 needed for Arms A/B (kraken-10 + cad-20 + residue); fund the Kraken account first`);
+  // only funds the Coinbase continuity arm. The balance guard applies only to
+  // Arm A/B tranches still unrecorded (resume: recorded tranches are skipped).
+  const krakenTranchesRecorded = [TRANCHES[0], TRANCHES[1], TRANCHES[2], TRANCHES[3]].every((t) =>
+    existsSync(path.join(SESSIONS_DIR, `${t.id}.json`)),
+  );
+  if (!krakenTranchesRecorded) {
+    const krakenBalance = await krakenPrivate("Balance", {});
+    const krakenUsdc = Number(krakenBalance.USDC ?? 0);
+    if (krakenUsdc < 35) {
+      die(`Kraken USDC balance ${krakenUsdc} is below the $35 needed for Arms A/B (kraken-10 + cad-20 + residue); fund the Kraken account first`);
+    }
   }
   const receiver = receiverAddress();
   const receiverBal = await receiverUsdcBalance(receiver);
@@ -814,30 +857,52 @@ async function modeExecute(): Promise<void> {
 
   mkdirSync(RAW_DIR, { recursive: true });
 
+  const recordExists = (id: string): boolean => existsSync(path.join(SESSIONS_DIR, `${id}.json`));
+
   log("Arm A: kraken-10");
-  await krakenSell(TRANCHES[0], 10, path.join(RAW_DIR, "kraken-10"));
+  if (!recordExists(TRANCHES[0].id)) {
+    await krakenSell(TRANCHES[0], 10, path.join(RAW_DIR, "kraken-10"));
+  } else {
+    log(`Arm A: kraken-10 already recorded; skipping (no re-execution)`);
+  }
   log("Arm A: kraken-residue (guard: ordermin 5)");
-  {
-    const bal = await krakenPrivate("Balance", {});
-    const spendable = Number(bal.USDC ?? 0);
-    const def = TRANCHES[1];
-    if (spendable >= KRAKEN_ORDERMIN_USD) {
-      await krakenSell(def, Number(spendable.toFixed(8)), path.join(RAW_DIR, "kraken-residue"));
-    } else {
-      const record = baseRecord(def);
-      record.execution_status = "not_executed_below_minimum";
-      record.notes = `spendable balance ${spendable} below ordermin ${KRAKEN_ORDERMIN_USD}`;
-      writeRecord(def, record);
+  if (recordExists("kraken-residue")) {
+    log("Arm A: kraken-residue already recorded; skipping (no re-execution)");
+  } else {
+    {
+      const bal = await krakenPrivate("Balance", {});
+      const spendable = Number(bal.USDC ?? 0);
+      const def = TRANCHES[1];
+      if (spendable >= KRAKEN_ORDERMIN_USD) {
+        await krakenSell(def, Number(spendable.toFixed(8)), path.join(RAW_DIR, "kraken-residue"));
+      } else {
+        const record = baseRecord(def);
+        record.execution_status = "not_executed_below_minimum";
+        record.notes = `spendable balance ${spendable} below ordermin ${KRAKEN_ORDERMIN_USD}`;
+        writeRecord(def, record);
+      }
     }
   }
 
   log("Arm B: cad-20");
-  await krakenSell(TRANCHES[2], 20, path.join(RAW_DIR, "cad-20"));
+  if (!recordExists(TRANCHES[2].id)) {
+    await krakenSell(TRANCHES[2], 20, path.join(RAW_DIR, "cad-20"));
+  } else {
+    log(`Arm B: cad-20 already recorded; skipping (no re-execution)`);
+  }
   log("Arm B: cad-eft");
-  await cadEftWithdraw(path.join(RAW_DIR, "cad-eft"));
+  if (!recordExists("cad-eft")) {
+    await cadEftWithdraw(path.join(RAW_DIR, "cad-eft"));
+  } else {
+    log(`Arm B: cad-eft already recorded; skipping (no re-execution)`);
+  }
 
   log("Arm C: coinbase-5-1, coinbase-5-2");
   for (const def of [TRANCHES[4], TRANCHES[5]]) {
+    if (recordExists(def.id)) {
+      log(`${def.id} already recorded; skipping (no re-execution)`);
+      continue;
+    }
     await coinbaseConvert(def, def.amountUsdc as number, path.join(RAW_DIR, def.id));
   }
 
