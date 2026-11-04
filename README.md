@@ -19,6 +19,11 @@ Each experiment is committed before it runs: a protocol and operator runbook are
 raw observations are collected verbatim into sessions, and the analyzed record validates against
 the schema in [DATA_DICTIONARY.md](DATA_DICTIONARY.md) in CI.
 
+Why this matters to an operator: the results show that at pay-per-call scale, fiat off-ramp cost
+is deterministic and equals the advertised rate. There is no price discovery to do; the open
+treasury questions are sweep scheduling, accounting basis tracking, and disbursement design.
+Every number in this repository is traceable to a committed, independently verifiable record.
+
 ## Lifecycle
 
 ```mermaid
