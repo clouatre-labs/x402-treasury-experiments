@@ -1,0 +1,21 @@
+{
+  "TCTLTY-5GT72-R2XITT": {
+    "ordertxid": "OLN7MO-CSKO7-U3Y6BN",
+    "postxid": "TKH2SE-M7IF5-CFI7LT",
+    "pair": "USDCUSD",
+    "aclass": "forex",
+    "time": 1793816984.674771,
+    "type": "sell",
+    "ordertype": "market",
+    "tradeordertype": "market",
+    "price": "0.99980000",
+    "cost": "90.98180000",
+    "fee": "0.18196360",
+    "vol": "91.00000000",
+    "margin": "0.00000000",
+    "leverage": "0",
+    "misc": "",
+    "trade_id": 24023549,
+    "maker": false
+  }
+}

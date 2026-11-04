@@ -1,0 +1,21 @@
+{
+  "TXH2XG-5QPJ4-23ORQK": {
+    "ordertxid": "OX6CYI-EUPXR-OWAK3C",
+    "postxid": "TKH2SE-M7IF5-CFI7LT",
+    "pair": "USDCUSD",
+    "aclass": "forex",
+    "time": 1793816615.750875,
+    "type": "sell",
+    "ordertype": "market",
+    "tradeordertype": "market",
+    "price": "0.99980000",
+    "cost": "9.99800000",
+    "fee": "0.01999600",
+    "vol": "10.00000000",
+    "margin": "0.00000000",
+    "leverage": "0",
+    "misc": "",
+    "trade_id": 24023521,
+    "maker": false
+  }
+}

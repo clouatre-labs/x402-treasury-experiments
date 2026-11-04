@@ -1,0 +1,36 @@
+{
+  "OX6CYI-EUPXR-OWAK3C": {
+    "refid": null,
+    "userref": 0,
+    "status": "closed",
+    "opentm": 1793816615.750875,
+    "starttm": 0,
+    "descr": {
+      "pair": "USDCUSD",
+      "aclass": "forex",
+      "type": "sell",
+      "ordertype": "market",
+      "price": "0",
+      "price2": "0",
+      "leverage": "none",
+      "order": "sell 10.00000000 USDCUSD @ market",
+      "close": ""
+    },
+    "vol": "10.00000000",
+    "vol_exec": "10.00000000",
+    "cost": "9.99800000",
+    "fee": "0.01999600",
+    "price": "0.9998",
+    "stopprice": "0.00000000",
+    "limitprice": "0.00000000",
+    "oflags": "fciq",
+    "time_in_force": "gtc",
+    "trades": [
+      "TXH2XG-5QPJ4-23ORQK"
+    ],
+    "reason": null,
+    "closetm": 1793816615.750875,
+    "expiretm": 0,
+    "misc": ""
+  }
+}

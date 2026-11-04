@@ -1,0 +1,143 @@
+{
+  "trade": {
+    "id": "9cd251ae-5d1b-4bda-8cce-50b77b7100a1",
+    "status": "TRADE_STATUS_UNSPECIFIED",
+    "user_entered_amount": {
+      "value": "5",
+      "currency": "USD",
+      "cbrn": ""
+    },
+    "amount": {
+      "value": "5",
+      "currency": "USDC",
+      "cbrn": ""
+    },
+    "subtotal": {
+      "value": "5",
+      "currency": "USD",
+      "cbrn": ""
+    },
+    "total": {
+      "value": "5",
+      "currency": "USD",
+      "cbrn": ""
+    },
+    "fees": [
+      {
+        "title": "Coinbase Fee",
+        "description": "Fee charged by Coinbase",
+        "amount": {
+          "value": "0",
+          "currency": "USD",
+          "cbrn": ""
+        },
+        "label": "Coinbase fee",
+        "disclosure": {
+          "title": "Fees on Cryptocurrency Purchases",
+          "description": "This fee is based on a combination of factors such as market conditions, payment method, and size of the order,",
+          "link": {
+            "text": "learn more",
+            "url": "https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees"
+          }
+        },
+        "waived_details": null,
+        "metadata": {
+          "netburn": {
+            "threshold": {
+              "value": "5000000",
+              "currency": "USDC",
+              "cbrn": ""
+            },
+            "netburn_value": {
+              "value": "67.26",
+              "currency": "USDC",
+              "cbrn": ""
+            }
+          }
+        }
+      }
+    ],
+    "total_fee": {
+      "title": "Fee Total",
+      "description": "Total fee associated with this transaction",
+      "amount": {
+        "value": "0",
+        "currency": "USD",
+        "cbrn": ""
+      },
+      "label": "Fee total",
+      "disclosure": null,
+      "waived_details": null,
+      "metadata": null
+    },
+    "source": {
+      "type": "LEDGER_ACCOUNT",
+      "network": "internal_retail",
+      "payment_method_id": "",
+      "payment_method_uuid": "",
+      "payment_method_type_string": "",
+      "ledger_account": {
+        "account_id": "0036ffaa-9fce-5cc7-b4be-bd981f331557",
+        "currency": "USDC",
+        "owner": {
+          "id": "6adcc8adfe9bc8ef7a8af61e",
+          "uuid": "",
+          "user_uuid": "1d9cbcf9-e311-5a04-a79a-6339509c99bd",
+          "type": "RETAIL"
+        },
+        "account_uuid": "",
+        "account_name": "",
+        "account_type": ""
+      }
+    },
+    "target": {
+      "type": "LEDGER_ACCOUNT",
+      "network": "internal_retail",
+      "payment_method_id": "",
+      "payment_method_uuid": "",
+      "payment_method_type_string": "",
+      "ledger_account": {
+        "account_id": "45279a86-c07f-5dcf-9f38-76bd2f70ed18",
+        "currency": "USD",
+        "owner": {
+          "id": "6adcc8adfe9bc8ef7a8af61e",
+          "uuid": "",
+          "user_uuid": "1d9cbcf9-e311-5a04-a79a-6339509c99bd",
+          "type": "RETAIL"
+        },
+        "account_uuid": "",
+        "account_name": "",
+        "account_type": ""
+      }
+    },
+    "unit_price": {
+      "target_to_fiat": {
+        "amount": {
+          "value": "1",
+          "currency": "USD",
+          "cbrn": ""
+        },
+        "scale": 4
+      },
+      "target_to_source": null,
+      "source_to_fiat": null
+    },
+    "user_warnings": [],
+    "user_reference": "",
+    "source_currency": "USDC",
+    "target_currency": "USD",
+    "cancellation_reason": null,
+    "source_id": "0036ffaa-9fce-5cc7-b4be-bd981f331557",
+    "target_id": "6adcc9629b950b92c184d586",
+    "subscription_info": null,
+    "exchange_rate": {
+      "value": "1",
+      "currency": "USDC",
+      "cbrn": ""
+    },
+    "tax_details": [],
+    "trade_incentive_info": null,
+    "total_fee_without_tax": null,
+    "fiat_denoted_total": null
+  }
+}
