@@ -87,9 +87,17 @@ def main():
         y = M_T + i * (bar_h + gap)
         bar_w = max(1.0, fee / max_fee * plot_w)
         label = f"${fee:.4f}"
+        # keep the value label inside the canvas: for near-full-width bars,
+        # anchor it inside the bar end instead of past the right edge
+        # (post-pass cosmetic layout fix; label content unchanged).
+        label_x = M_L + bar_w + 6
+        anchor, fill_attr = "start", ""
+        if label_x > W - 60:
+            label_x = M_L + bar_w - 6
+            anchor, fill_attr = "end", ' fill="#ffffff"'
         body.append(f'  <text x="{M_L - 8}" y="{y + bar_h / 2 + 4}" text-anchor="end" font-size="11" font-family="sans-serif">{tid}</text>')
         body.append(f'  <rect x="{M_L}" y="{y}" width="{bar_w:.1f}" height="{bar_h}" fill="#2563eb"/>')
-        body.append(f'  <text x="{M_L + bar_w + 6}" y="{y + bar_h / 2 + 4}" font-size="11" font-family="sans-serif">{label}</text>')
+        body.append(f'  <text x="{label_x:.1f}" y="{y + bar_h / 2 + 4}" text-anchor="{anchor}" font-size="11" font-family="sans-serif"{fill_attr}>{label}</text>')
         if disbursement:
             body.append(
                 f'  <text x="{M_L + bar_w + 6}" y="{y + bar_h / 2 + 16}" font-size="9" '

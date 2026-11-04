@@ -19,3 +19,19 @@ To be generated after the run completes; the same three scripts, pointed at `exp
 - **Figure 1 (primary):** realized fee vs tranche amount, with the published Coinbase Advanced Trade taker fee schedule overlaid (schedule values recorded verbatim at execution time).
 - **Figure 2:** per-hop latency (on-chain send on Base, Coinbase credit/convert fill, fiat or USD balance spendable) per tranche.
 - **Figure 3:** fee decomposition per tranche (fixed fee, percentage fee, spread vs USDC mid).
+
+## Post-hoc Figures (usdc-fiat-sweep-v2)
+
+Added after the sealed pass (the pre-registration recipe set contains fig1
+only); reads the committed records plus the pre-registered advertised
+schedule constants from `protocol.md`:
+
+- **Figure 2 (post-hoc, not preregistered):** realized fee rate vs
+  advertised rate per tranche on a common 0-0.6% axis, with the
+  not-executed Arm B rows greyed as structural exclusions
+  (`usdc_fiat_sweep_v2_fig2_rate_comparison.py`, same `--records`
+  indirection as fig1).
+
+Post-pass cosmetic layout fix (2026-11-04, disclosed): fig1's per-bar value
+labels are now anchored inside the bar end when they would otherwise clip at
+the canvas edge; label content (the record-derived fee) is unchanged.
