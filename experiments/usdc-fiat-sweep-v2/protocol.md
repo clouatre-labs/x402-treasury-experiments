@@ -1,14 +1,15 @@
-# Protocol: usdc-fiat-sweep-v2 (DRAFT - externally reviewed, redesigned, ready to re-seal)
+# Protocol: usdc-fiat-sweep-v2 (SEALED)
 
-> **STATUS: DRAFT — reviewed and operationally verified, ready to seal.**
-> Full design review (Gemini): approve-with-revisions, all revisions applied.
-> Delta review of the micro-volume redesign: approve-with-revisions, all
-> four revisions applied. Design simplified to a single provider (Kraken)
-> after a documented gateway-selection survey disqualified the gateway slot
-> (see Gateway selection survey). Rail facts verified against Kraken's live
-> API on 2026-11-03. Nothing in this file authorizes execution yet. On
-> sealing, this notice is removed and the stop-and-record clauses of
-> [METHODOLOGY.md](../../METHODOLOGY.md) apply.
+> **STATUS: SEALED 2026-11-04.** This protocol is frozen: the design, tranche
+> ladder, rail snapshot, and claim scope below are immutable for the
+> execution pass. Full design review (Gemini): approve-with-revisions, all
+> revisions applied. Delta review of the micro-volume redesign:
+> approve-with-revisions, all four revisions applied. Design simplified to a
+> single provider (Kraken) after a documented gateway-selection survey
+> disqualified the gateway slot (see Gateway selection survey). Rail facts
+> verified against Kraken's live API on 2026-11-03. The stop-and-record
+> clauses of [METHODOLOGY.md](../../METHODOLOGY.md) now apply: one execution
+> pass, deviations recorded verbatim, records never edited by hand.
 
 ## Motivation
 
