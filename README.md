@@ -42,7 +42,7 @@ back to that sealed design.*
 |------|----------|--------|------------|
 | `usdc-fiat-sweep` | Retail Coinbase off-ramp cost (human-executed) | superseded pre-execution | n/a |
 | `usdc-fiat-sweep-api` | Coinbase Advanced Trade USDC/USD convert cost on Base across $1-$100+ tranches (issuer-redemption rail verification) | complete | realized fee 0.00% on every tranche ($1 to full balance); convert fee quoted and charged at $0.00; USD spread 0% |
-| `usdc-fiat-sweep-v2` | Cross-provider micro-sweep off-ramp cost (realized vs advertised) and bank disbursement at x402 micro-receipt volumes (planned; pre-registration pending delta review) | pre-registration draft | n/a |
+| `usdc-fiat-sweep-v2` | Kraken independent-exchange micro-sweep (realized vs advertised), CAD EFT disbursement, and Coinbase continuity at x402 micro-receipt volumes | pre-registration draft (review-clean, rail-verified) | n/a |
 
 ## Repository Layout
 

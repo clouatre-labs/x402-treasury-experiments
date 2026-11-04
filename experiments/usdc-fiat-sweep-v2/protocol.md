@@ -1,15 +1,13 @@
 # Protocol: usdc-fiat-sweep-v2 (DRAFT - externally reviewed, redesigned, ready to re-seal)
 
-> **STATUS: DRAFT — redesigned and delta-reviewed (approve-with-revisions,
-> all four revisions incorporated), ready to seal.** This protocol supersedes
-> the earlier 4-arm/$3,270 draft after a KISS/cost re-review; the delta
-> review of the micro-volume redesign approved with four revisions, all
-> applied here: claim scope restricted to $5-$20 programmatic micro-receipt
-> sweeps, exact residue-sweep formula with below-minimum guard,
-> `rejected_below_minimum`/`not_executed_below_minimum` failure
-> classifications, and an ACH-minimum preflight check. Claims are valid only
-> at micro scale; see Claim scope. Nothing in this file authorizes execution
-> yet. On sealing, this notice is removed and the stop-and-record clauses of
+> **STATUS: DRAFT — reviewed and operationally verified, ready to seal.**
+> Full design review (Gemini): approve-with-revisions, all revisions applied.
+> Delta review of the micro-volume redesign: approve-with-revisions, all
+> four revisions applied. Design simplified to a single provider (Kraken)
+> after a documented gateway-selection survey disqualified the gateway slot
+> (see Gateway selection survey). Rail facts verified against Kraken's live
+> API on 2026-11-03. Nothing in this file authorizes execution yet. On
+> sealing, this notice is removed and the stop-and-record clauses of
 > [METHODOLOGY.md](../../METHODOLOGY.md) apply.
 
 ## Motivation
@@ -31,13 +29,17 @@ conversion when real revenue volume justifies it).
 
 ## Research questions
 
-- Q1: What do independent providers (non-issuer rails) actually charge to
-  convert micro USDC balances to fiat, realized vs advertised? (cross-provider arm)
-- Q2: What does ACH disbursement add in cost and latency after the exchange
+- Q1: What does an independent exchange (non-issuer rail) actually charge to
+  convert micro USDC balances to fiat, realized vs advertised?
+  (independent-exchange arm)
+- Q2: What does fiat disbursement add in cost and latency after the exchange
   ledger, and how do exchange fees separate from receiving-bank deductions
-  on the ACH rail? (disbursement arm)
+  on a domestic CAD EFT rail? (disbursement arm)
 - Q3: Is v1's zero fee stable at micro volumes on the same Coinbase rail?
   (continuity arm)
+- Q4 (qualitative): What do fiat-off-ramp gateways quote for micro-scale
+  USDC off-ramps, and why were they disqualified from measurement?
+  (gateway selection survey, recorded finding)
 
 ## Claim scope (fixed)
 
@@ -58,12 +60,36 @@ quote/rate-card APIs at execution time.
 
 | Arm | Provider/rail | Tranches | Endpoints |
 |-----|---------------|----------|-----------|
-| A: cross-provider | two independent providers selected before sealing, restricted strictly to rails supporting native USDC deposits on Base (candidates: Dexter, Kraken; final selection recorded in the sealed runbook with verbatim fee-schedule snapshot) | $10 x1 each, then one residue sweep per provider, defined exactly as `amount = balance_provider_usdc_spendable` at sweep time, with the guard below | realized fee, quoted fee, spread vs mid, realized slippage vs quoted price (broker/AMM rails), per-hop latency |
-| B: disbursement | exchange USD ledger -> external bank account via ACH, from one Arm A provider chosen at sealing | $20 x1 | exchange-quoted disbursement fee, external bank/intermediary deduction, net settled amount, hold/arrival latency |
+| A: independent exchange | Kraken (order book USDC/USD, stablecoin fee schedule; USDC deposited natively on Base, verified by live test deposit 2026-11-03) | $10 x1 order-book sell, then one residue sweep defined exactly as `amount = balance_provider_usdc_spendable` at sweep time, with the guard below | realized fee, quoted fee (0.20% advertised), spread vs mid, realized slippage vs quoted price, per-hop latency |
+| B: disbursement | Kraken USD ledger -> CAD -> Canadian bank via EFT (Pateno), selected by live `WithdrawMethods` query 2026-11-03 | sell 20 USDC -> CAD x1, then EFT withdrawal of the CAD proceeds x1 | exchange-quoted convert fee and EFT fee (0.35% advertised), external bank/intermediary deduction, net settled amount, hold/arrival latency |
 | C: continuity | Coinbase Advanced Trade convert (Base deposit), v1 rail | $5 x2 | realized fee, quoted fee, spread vs mid, per-hop latency |
 
-Total planned conversions: 7 (one pass, ascending order within arms;
-no tranche re-run). `not_executed` outcomes are recorded, never retried.
+Total planned conversions/withdrawals: 6 transactions (one pass, ascending
+order within arms; no tranche re-run). `not_executed` outcomes are recorded,
+never retried.
+
+### Verbatim rail snapshot (live API queries, 2026-11-03)
+
+- Kraken `AssetPairs` USDC/USD: `ordermin` 5 USDC, `costmin` 0.5 USD;
+  stablecoin fee schedule 0.20% maker / 0.20% taker at entry tier (Kraken
+  support documentation, stablecoin/FX markets, maker equals taker)
+- Kraken `WithdrawMethods` ZCAD: `EFT (Pateno)` minimum 20.00 CAD, fee
+  0.00 CAD + 0.35%; `Interac E-Transfer` minimum 15.00 CAD, fee 10.00 CAD;
+  `Bank Frick (SWIFT) International` minimum 100.00, fee 13.00
+- Kraken `WithdrawMethods` ZUSD: only `Bank Frick (SWIFT) International`
+  (minimum 100.00 USD, fee 13.00 USD) — no ACH rail exists on this account;
+  the originally planned ACH arm is replaced by the CAD EFT arm above
+- Receiver wallet (`X402_PAY_TO`) on-chain USDC balance: 0.00 (v1 swept it
+  in full), so a funding step is part of the sealed runbook
+
+### Funding step (pre-registered, outside the measured pass)
+
+One funding operation before tranche execution: purchase approximately
+$40 USDC plus ~0.0002 ETH Base gas float via the CDP/Coinbase flow, withdraw
+USDC on Base to the receiver wallet (`X402_PAY_TO`), recorded verbatim into
+`sessions/funding.json` exactly as in v1. Funding is working-capital
+placement, not measurement; its cost is recorded but excluded from sweep
+endpoints.
 
 ### Residue-sweep guard (fixed formula)
 
@@ -86,24 +112,39 @@ script records the error response verbatim, sets
 tranche without halting the runbook. A minimum rejection is a valid
 cost-surface observation, not an execution fault.
 
+### Gateway selection survey (recorded finding, Q4)
+
+The gateway architecture (specialized fiat off-ramp, non-exchange) was
+probed for measurement and disqualified at selection; the survey itself is
+recorded as a qualitative finding. All quotes observed 2026-11-03:
+
+| Provider | Offer for $10 USDC sell | Disqualification reason |
+|----------|------------------------|--------------------------|
+| Dexter | none — no operator fiat off-ramp exists in the product (facilitator/wallet infrastructure only) | no fiat disbursement capability |
+| Transak | 10 USDC -> 5.86 USD via card payout on Ethereum mainnet only (~41% effective cost at $10, quote observed in vendor widget) | Ethereum-only sell rail (no Base), card payout not bank deposit, effective cost off-scale |
+
+Consequence: the cross-architecture comparison narrows to independent
+exchange (Kraken) vs issuer rail (Coinbase), which is what the data can
+support; the gateway cost surface is documented by this survey instead.
+
 ### Working capital and cost budget
 
-Total float: approximately $65, cycling back to the operator's own fiat.
-Worst-case real cost budget: under $1 (advertised schedules imply roughly
-$0.02 Kraken convert on $10, Dexter 0.1-0.5% on $10, ACH $0, Base gas
-fractions of a cent per leg). If realized cost would exceed the budget,
-records still commit as measured; the budget is a design expectation, not a
-censoring rule.
+Float on Kraken: 101 USDC already deposited (working capital, cycles back
+to the operator's fiat at Arm B); Coinbase side approximately $40 funded
+per the funding step. Worst-case real cost budget: under $1 across all
+arms (advertised schedules imply roughly 0.20% on Arm A sells, 0.20% +
+0.35% on the Arm B convert-and-EFT path, ~0% on Arm C, Base gas fractions
+of a cent per leg). If realized cost exceeds the budget, records still
+commit as measured; the budget is a design expectation, not a censoring
+rule.
 
-### Out of scope (explicit)
+### CAD leg note (fixed)
 
-- Tier-boundary probing at $250-$1,000+ volumes (requires manufactured
-  float; provider schedules document these boundaries; can be pre-registered
-  separately if real revenue ever reaches them)
-- EUR/FX arms and any cross-currency decomposition
-- Wire disbursement (ACH only; wire adds cost without changing the
-  exchange-vs-bank separation logic at these amounts)
-- Time-lapse re-measurement (folded into future work; Q3 covers continuity)
+Arm B sells USDC into CAD on the Kraken order book before the EFT
+withdrawal; the USDC/CAD pair mid is observed from the same order book at
+execution time and recorded verbatim, so the FX leg is measured with the
+same realized-vs-quoted logic as the USD legs. CAD proceeds are reported
+separately and never averaged into USD results.
 
 ### Sealed-before-execution artifacts
 
@@ -121,21 +162,15 @@ censoring rule.
 - Budget and working-capital source; wallet/keying rules inherited from v1
   (receiver wallet sourced from the secret store at execution time only)
 
-### Provider selection criteria (fixed in the sealed text)
+### Out of scope (explicit)
 
-Selection of the two Arm A providers is locked at sealing, before any live
-keying or funds move. Exactly two providers are chosen under these inclusion
-criteria:
-
-1. Deposit network parity: native USDC deposits on Base required (must be
-   verified against the provider's current supported-networks documentation
-   at selection time; Kraken's Base support is unconfirmed as of this draft
-   and disqualifies Kraken if absent).
-2. Account readiness: full verification completed and disbursement rails
-   active prior to sealing; no unverified accounts permitted.
-3. Rail typology: exactly one centralized-exchange alternative with an
-   order-book/convert tool (e.g., Kraken) and one specialized fiat off-ramp
-   or payments gateway (e.g., Dexter); no duplicate architectures.
+- Tier-boundary probing at $250-$1,000+ volumes (requires manufactured
+  float; provider schedules document these boundaries; can be pre-registered
+  separately if real revenue ever reaches them)
+- EUR and non-CAD fiat legs
+- Wire/SWIFT disbursement (measured costs documented in the rail snapshot;
+  a $13 fee on a $100 minimum is recorded as a survey fact, not executed)
+- Time-lapse re-measurement (folded into future work; Q3 covers continuity)
 
 ## Statistical stance
 
@@ -167,15 +202,16 @@ networks, providers, or volume tiers.
 
 ## Sequence
 
-1. External validation of this redesign (short delta review, same Gemini
-   session as the original v2 review); incorporate or rebut findings
-2. Finalize provider selection (verify Base-deposit support per criterion 1),
-   fee-schedule snapshots, and extended schema; update DATA_DICTIONARY.md and
-   `validate_schema.py`; run the preflight checklist, which must verify that
-   the chosen disbursement provider's published minimum ACH withdrawal
-   amount is <= the planned $20 test tranche; then run the mock dry-run
-   (non-transacting script verification and sandbox/zero-value API ping) so
-   code correctness is proven BEFORE anything is frozen
+1. External validation (done: full design review + delta review, both
+   approve-with-revisions, all revisions applied)
+2. Finalize rail snapshots (done: live API queries recorded in the Verbatim
+   rail snapshot section); update DATA_DICTIONARY.md and
+   `validate_schema.py`; run the preflight checklist, which must verify:
+   Kraken API key auth (Balance query), EFT (Pateno) minimum 20.00 CAD <=
+   the planned Arm B tranche proceeds, USDC/CAD order book reachable, and
+   receiver wallet funded per the funding step; then run the mock dry-run
+   (non-transacting script verification and read-only API pings) so code
+   correctness is proven BEFORE anything is frozen
 3. Seal: commit protocol, schemas, and frozen recipes; freeze repository
    state; remove the DRAFT notice
 4. Live execution pass only — the single transacting pass; preflight checks
@@ -185,16 +221,16 @@ networks, providers, or volume tiers.
 
 ## Acceptance criteria
 
-- [ ] Delta review findings addressed or rebutted in this file before sealing
-      (all four applied: claim-scope restriction, residue formula and guard,
-      platform-minimum failure classification, ACH-minimum preflight check)
-- [ ] Provider fee schedules snapshotted verbatim before first conversion
-- [ ] All conversions one pass, ascending, no re-runs; failures recorded with
+- [ ] Delta review findings addressed (claim-scope restriction, residue
+      formula and guard, platform-minimum failure classification,
+      disbursement-minimum preflight check — all applied)
+- [ ] Kraken rail snapshot recorded verbatim (done, from live API queries)
+- [ ] All transactions one pass, ascending, no re-runs; failures recorded with
       `execution_status` and `is_latency_valid` set programmatically
 - [ ] Records validate against the extended schema in CI
 - [ ] Figures regenerate from committed records only
-- [ ] Bank-disbursement cost and latency reported with exchange fees and
+- [ ] Disbursement cost and latency reported with exchange fees and
       external bank deductions separated
-- [ ] Total float within the ~$65 budget; real cost within the <$1 budget
-      (or the overage recorded and discussed in the results report)
+- [ ] Real cost within the <$1 budget (or the overage recorded and discussed
+      in the results report)
 - [ ] No private keys, seeds, or credentials in any committed file
