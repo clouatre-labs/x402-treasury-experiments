@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="280" viewBox="0 0 640 280" role="img" aria-label="Realized cost per transaction against the advertised schedule, usdc-fiat-sweep-v2">
+  <style>
+    text { font-family: ui-monospace, Menlo, monospace; }
+    .title { font-size: 14px; font-weight: 600; fill: #18181b; }
+    .label { font-size: 13px; fill: #18181b; }
+    .value { font-size: 13px; fill: #18181b; }
+    .note { font-size: 12px; fill: #52525b; }
+    .mark { fill: #075985; }
+  </style>
+  <text x="320.0" y="24" text-anchor="middle" class="title">Realized exchange fee per transaction (USD)</text>
+  <text x="140" y="57.0" text-anchor="end" class="label">kraken-residue</text>
+  <rect x="150" y="40" width="380.0" height="26" rx="3" class="mark"/>
+  <text x="538.0" y="57.0" class="value">$0.1820</text>
+  <text x="140" y="99.0" text-anchor="end" class="label">kraken-10</text>
+  <rect x="150" y="82" width="41.8" height="26" rx="3" class="mark"/>
+  <text x="199.8" y="99.0" class="value">$0.0200</text>
+  <text x="140" y="141.0" text-anchor="end" class="label">coinbase-5-1</text>
+  <rect x="150" y="124" width="0.0" height="26" rx="3" class="mark"/>
+  <text x="158.0" y="141.0" class="value">$0.0000</text>
+  <text x="140" y="183.0" text-anchor="end" class="label">coinbase-5-2</text>
+  <rect x="150" y="166" width="0.0" height="26" rx="3" class="mark"/>
+  <text x="158.0" y="183.0" class="value">$0.0000</text>
+  <text x="150" y="212" class="note">Advertised: Kraken stablecoin 0.20% taker; Coinbase convert 0%.</text>
+  <text x="150" y="228" class="note">Executed tranches only; not-executed Arm B rows are structural</text>
+  <text x="150" y="244" class="note">exclusions (see the rate-comparison figure).</text>
+</svg>

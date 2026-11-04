@@ -22,16 +22,17 @@ To be generated after the run completes; the same three scripts, pointed at `exp
 
 ## Post-hoc Figures (usdc-fiat-sweep-v2)
 
-Added after the sealed pass (the pre-registration recipe set contains fig1
-only); reads the committed records plus the pre-registered advertised
-schedule constants from `protocol.md`:
+Added after the sealed pass, following the
+`figures/usdc_fiat_sweep_hop_latency_clean.py` precedent: styled SVG plus a
+white-background PNG render (the PNG is what the docs embed, since directly
+embedded transparent SVGs are unreadable on GitHub dark mode). They read
+only the committed records plus the pre-registered advertised schedule
+constants from `protocol.md`:
 
-- **Figure 2 (post-hoc, not preregistered):** realized fee rate vs
-  advertised rate per tranche on a common 0-0.6% axis, with the
-  not-executed Arm B rows greyed as structural exclusions
-  (`usdc_fiat_sweep_v2_fig2_rate_comparison.py`, same `--records`
-  indirection as fig1).
-
-Post-pass cosmetic layout fix (2026-11-04, disclosed): fig1's per-bar value
-labels are now anchored inside the bar end when they would otherwise clip at
-the canvas edge; label content (the record-derived fee) is unchanged.
+- **Realized vs advertised fee rate per tranche** (post-hoc, not
+  preregistered): common 0-0.6% rate axis, not-executed Arm B rows rendered
+  as greyed structural exclusions (`figures/usdc_fiat_sweep_v2_rate_comparison.py`).
+- **Realized exchange fee per executed transaction (USD)**: same content as
+  the frozen fig1 recipe's SVG, in the dark-mode-safe house style
+  (`figures/usdc_fiat_sweep_v2_cost_per_tx.py`). The frozen recipe and its
+  SVG remain untouched as a pipeline artifact, not embedded.
