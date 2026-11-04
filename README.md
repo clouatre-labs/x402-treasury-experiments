@@ -70,6 +70,67 @@ Each experiment directory under `experiments/` contains its protocol, operator r
 
 ## Results
 
+### usdc-fiat-sweep-v2
+
+**Status:** complete (one execution pass, 2026-11-04; no tranche re-runs). Design sealed at commit `60ecd00` before execution; every deviation from the sealed script is recorded verbatim in [METHODOLOGY.md, Execution Deviations](METHODOLOGY.md#execution-deviations-recorded-per-protocol-stop-and-record). Full report: [results/usdc-fiat-sweep-v2.md](results/usdc-fiat-sweep-v2.md). Records: [experiments/usdc-fiat-sweep-v2/sessions/](experiments/usdc-fiat-sweep-v2/sessions/).
+
+Headline: the independent exchange charged exactly its advertised rate and the issuer rail reproduced v1's zero-fee finding at x402 micro-receipt volumes; the CAD disbursement leg is a recorded negative result with a structural cause. Realized vs advertised per transaction:
+
+*Table 2: Realized vs advertised cost per transaction, one execution pass. All numbers verbatim from committed records; Kraken quote-context columns were re-observed post-recovery and are flagged in the records.*
+
+| Tranche | Arm | Amount (USDC) | Fiat received | Realized fee | Advertised | Fill vs mid | `execution_status` |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `kraken-10` | A | 10.0 | $9.998 | $0.019996 (0.2000%) | 0.20% taker | 0.9998 vs mid 0.99985 | `clean_fill` (recovered) |
+| `kraken-residue` | A | 91.0 | $90.9818 | $0.181964 (0.2000%) | 0.20% taker | 0.9998 vs mid 0.99985 | `clean_fill` (recovered) |
+| `coinbase-5-1` | C | 10.0 | $10.00 | $0.00 (0%) | 0% | rate 1.0 | `clean_fill` (recovered; double commit) |
+| `coinbase-5-2` | C | 5.0 | $5.00 | $0.00 (0%) | 0% | rate 1.0 | `clean_fill` (recovered) |
+| `cad-20` | B | - | - | - | 0.20% + 0.35% | - | `not_executed_below_minimum` |
+| `cad-eft` | B | - | - | - | 0.35% | - | `not_executed_below_minimum` |
+
+Total realized exchange fees: $0.20196, within the pre-registered <$1 budget. The two Arm B rows are recorded outcomes, not missing data: the sealed residue formula sells the entire spendable USDC balance before the fixed-size cad-20 tranche, so the CAD measurement is arithmetically impossible for any working capital; pass 2 reserves the Arm B amount (or orders Arm B before the residue). All executed tranches are recovery-assisted (`is_latency_valid = false` throughout, per the mechanical exclusion rule), so this pass supports no latency claims; fee and price endpoints come verbatim from executed fills. `coinbase-5-1` converted double principal (two 1:1, $0.00 commits after a crash between commit and record write).
+
+Pipeline of the sealed pass:
+
+```mermaid
+flowchart TD
+    seal[Sealed protocol] --> fund[Funding]
+    fund --> armA[Arm A sells]
+    armA --> armB[Arm B EFT]
+    armA --> armC[Arm C converts]
+    armC --> rec[Records]
+    rec --> fig[Figure]
+    rec --> rep[Report]
+```
+
+*Figure 3: The v2 execution pass. The sealed protocol (commit `60ecd00`) fixes the tranche ladder before funding; Arms A and C execute with verbatim raw artifacts, Arm B records its structural non-execution, and the figure and report derive only from the committed records.*
+
+![Bar chart of realized cost per transaction against the advertised schedule for the six v2 tranches](figures/usdc_fiat_sweep_v2_fig1_cost_per_transaction.svg)
+
+*Figure 4: Realized cost per transaction against the advertised schedule (Kraken stablecoin 0.20%, Coinbase convert 0%, EFT 0.35%). Every executed tranche sits at its advertised rate; the two non-executed Arm B tranches contribute zero bars. The degenerate-constant pattern mirrors v1: at micro volumes the cost surface is the advertised schedule, with no measurable hidden spread.*
+
+*Code Snippet 1: Commands to inspect the committed v2 records and raw artifacts.*
+
+```bash
+# Realized vs advertised fee for each tranche
+jq '{tranche_id, amount_usdc, fixed_fee_usd, realized_fee_pct,
+     execution_status, is_latency_valid}' experiments/usdc-fiat-sweep-v2/sessions/*.json
+
+# Verbatim Kraken fill behind the kraken-10 record
+jq '."OX6CYI-EUPXR-OWAK3C" | {vol_exec, cost, fee, price, trades}' \
+  experiments/usdc-fiat-sweep-v2/sessions/raw/kraken-10/query-orders.json
+
+# Coinbase convert commits (both 1:1, fee $0.00)
+jq '.trade | {id, status, "total_fee": .total_fee.amount.value}' \
+  experiments/usdc-fiat-sweep-v2/sessions/raw/coinbase-5-1/convert-fill.json
+
+# On-chain transfer receipts for the Arm C hops
+jq '{transactionHash, status, blockNumber, blockTimestamp}' \
+  experiments/usdc-fiat-sweep-v2/sessions/raw/coinbase-5-1/tx-receipt.json
+
+# The recorded structural cause for the CAD leg
+jq -r '.notes' experiments/usdc-fiat-sweep-v2/sessions/cad-20.json
+```
+
 ### usdc-fiat-sweep-api
 
 **Status:** complete. **First published release:** [v1.0.1](https://github.com/clouatre-labs/x402-treasury-experiments/releases/tag/v1.0.1). Version history note: v1.0.0 (wrong commit) and v1.0.2 (superseded before its metadata aligned) were deleted, and GitHub permanently reserves those names, so the published releases are v1.0.1 and v1.0.3 onward.
