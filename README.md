@@ -76,16 +76,16 @@ Each experiment directory under `experiments/` contains its protocol, operator r
 
 Headline: the independent exchange charged exactly its advertised rate and the issuer rail reproduced v1's zero-fee finding at x402 micro-receipt volumes; the CAD disbursement leg is a recorded negative result with a structural cause. Realized vs advertised per transaction:
 
-*Table 2: Realized vs advertised cost per transaction, one execution pass. All numbers verbatim from committed records; Kraken quote-context columns were re-observed post-recovery and are flagged in the records.*
+*Table 2: Realized vs advertised cost per transaction, one execution pass. All numbers verbatim from committed records; fiat received equals amount minus fee (1:1 on Coinbase, 0.20% on Kraken); Kraken quote-context (fill price vs mid) was re-observed post-recovery and is flagged in the records and in Figure 3.*
 
-| Tranche | Arm | Amount (USDC) | Fiat received | Realized fee | Advertised | Fill vs mid | `execution_status` |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `kraken-10` | A | 10.0 | $9.998 | $0.019996 (0.2000%) | 0.20% taker | 0.9998 vs mid 0.99985 | `clean_fill` (recovered) |
-| `kraken-residue` | A | 91.0 | $90.9818 | $0.181964 (0.2000%) | 0.20% taker | 0.9998 vs mid 0.99985 | `clean_fill` (recovered) |
-| `coinbase-5-1` | C | 10.0 | $10.00 | $0.00 (0%) | 0% | rate 1.0 | `clean_fill` (recovered; double commit) |
-| `coinbase-5-2` | C | 5.0 | $5.00 | $0.00 (0%) | 0% | rate 1.0 | `clean_fill` (recovered) |
-| `cad-20` | B | - | - | - | 0.20% + 0.35% | - | `not_executed_below_minimum` |
-| `cad-eft` | B | - | - | - | 0.35% | - | `not_executed_below_minimum` |
+| Tranche | Arm | Amount (USDC) | Realized fee | Advertised | `execution_status` |
+| --- | --- | --- | --- | --- | --- |
+| `kraken-10` | A | 10.0 | $0.019996 (0.2000%) | 0.20% taker | `clean_fill` (recovered) |
+| `kraken-residue` | A | 91.0 | $0.181964 (0.2000%) | 0.20% taker | `clean_fill` (recovered) |
+| `coinbase-5-1` | C | 10.0 | $0.00 (0%) | 0% | `clean_fill` (recovered; double commit) |
+| `coinbase-5-2` | C | 5.0 | $0.00 (0%) | 0% | `clean_fill` (recovered) |
+| `cad-20` | B | - | - | 0.20% + 0.35% | `not_executed_below_minimum` |
+| `cad-eft` | B | - | - | 0.35% | `not_executed_below_minimum` |
 
 Total realized exchange fees: $0.20196, within the pre-registered <$1 budget. The two Arm B rows are recorded outcomes, not missing data: the sealed residue formula sells the entire spendable USDC balance before the fixed-size cad-20 tranche, so the CAD measurement is arithmetically impossible for any working capital; pass 2 reserves the Arm B amount (or orders Arm B before the residue). All executed tranches are recovery-assisted (`is_latency_valid = false` throughout, per the mechanical exclusion rule), so this pass supports no latency claims; fee and price endpoints come verbatim from executed fills. `coinbase-5-1` converted double principal (two 1:1, $0.00 commits after a crash between commit and record write).
 
