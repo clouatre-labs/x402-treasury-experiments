@@ -187,8 +187,8 @@ See [CITATION.cff](CITATION.cff) or:
   author = {Clouâtre, Hugues},
   year   = {2026},
   doi    = {10.5281/zenodo.23927458},
-  note   = {All versions. Latest version DOI: \url{https://doi.org/10.5281/zenodo.23929259}}
+  note   = {All versions. Latest version DOI: \url{https://doi.org/10.5281/zenodo.23966655}}
 }
 ```
 
-Dataset archived at Zenodo (concept DOI): [10.5281/zenodo.23927458](https://doi.org/10.5281/zenodo.23927458); latest version: [10.5281/zenodo.23929259](https://doi.org/10.5281/zenodo.23929259). Companion post: [Agent payments and the x402 treasury](https://clouatre.ca/posts/agent-payments-x402/).
+Dataset archived at Zenodo (concept DOI): [10.5281/zenodo.23927458](https://doi.org/10.5281/zenodo.23927458); latest version: [10.5281/zenodo.23966655](https://doi.org/10.5281/zenodo.23966655). Companion post: [Agent payments and the x402 treasury](https://clouatre.ca/posts/agent-payments-x402/).
