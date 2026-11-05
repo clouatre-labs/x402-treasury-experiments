@@ -146,4 +146,4 @@ rsvg-convert -z 2 -b '#ffffff' \
 
 See [CITATION.cff](../CITATION.cff). Dataset archived at Zenodo (concept
 DOI): [10.5281/zenodo.23927458](https://doi.org/10.5281/zenodo.23927458);
-latest version: [10.5281/zenodo.23929259](https://doi.org/10.5281/zenodo.23929259).
+latest version: [10.5281/zenodo.23966655](https://doi.org/10.5281/zenodo.23966655).
