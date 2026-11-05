@@ -1,9 +1,9 @@
 # Results: usdc-fiat-sweep-v2
 
-Status: execution pass complete (one pass, ascending tranche order, no
-tranche re-runs; recovery deviations recorded verbatim in
+Status: complete. Execution pass finished (one pass, ascending tranche
+order, no tranche re-runs; recovery deviations recorded verbatim in
 [METHODOLOGY.md](../METHODOLOGY.md#execution-deviations-recorded-per-protocol-stop-and-record)).
-**Draft for operator review.** Design:
+Design:
 [`experiments/usdc-fiat-sweep-v2/protocol.md`](../experiments/usdc-fiat-sweep-v2/protocol.md)
 (sealed at commit `60ecd00` before execution). Records:
 [`experiments/usdc-fiat-sweep-v2/sessions/`](../experiments/usdc-fiat-sweep-v2/sessions/).

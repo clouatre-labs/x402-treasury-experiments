@@ -16,8 +16,8 @@ identifiers:
     description: Zenodo dataset DOI (v1.0.3)
 repository-code: https://github.com/clouatre-labs/x402-treasury-experiments
 license: Apache-2.0
-date-released: "2026-11-03"
-version: "1.0.3"
+date-released: "2026-11-04"
+version: "2.0.0"
 abstract: >
   Pre-registered measurements of the cost and friction of converting
   accumulated L2 USDC micropayment revenue into spendable fiat. The
@@ -26,7 +26,14 @@ abstract: >
   the convert fee quoted and charged was $0.00, the realized fee was 0.00%,
   and the USD spread was 0% on every tranche from $1 to the full wallet
   balance; the only realized cost was Base gas, 0.00000654 ETH spent from a
-  0.00014 ETH (approximately $0.31) funding float. Figure 3 (fee
+  0.00014 ETH (approximately $0.31) funding float. The usdc-fiat-sweep-v2
+  experiment (v2.0.0) replicated the endpoints on an independent exchange
+  (Kraken USDC/USD) at x402 micro-receipt volumes ($5-$20): the realized fee
+  was exactly the advertised 0.20% taker fee on both executed USD sell
+  tranches, with no hidden spread, and the Coinbase issuer rail reproduced
+  the 1:1 $0.00-fee continuity finding; the CAD disbursement arm is recorded
+  as not_executed_below_minimum due to a sealed residue-formula design
+  conflict, itself the most reproducible result of the pass. Figure 3 (fee
   decomposition) is intentionally absent because every cost component is
   zero.
 keywords:
