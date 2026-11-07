@@ -191,4 +191,4 @@ See [CITATION.cff](CITATION.cff) or:
 }
 ```
 
-Dataset archived at Zenodo (concept DOI): [10.5281/zenodo.23927458](https://doi.org/10.5281/zenodo.23927458); latest version: [10.5281/zenodo.23966655](https://doi.org/10.5281/zenodo.23966655). Companion post: [Agent payments and the x402 treasury](https://clouatre.ca/posts/agent-payments-x402/).
+Dataset archived at Zenodo (concept DOI): [10.5281/zenodo.23927458](https://doi.org/10.5281/zenodo.23927458); latest version: [10.5281/zenodo.23966655](https://doi.org/10.5281/zenodo.23966655). Companion posts: [Pay-per-call margins and the treasury](https://clouatre.ca/posts/pay-per-call-margins-treasury/) and [Agent payments and the x402 treasury](https://clouatre.ca/posts/agent-payments-x402/).
