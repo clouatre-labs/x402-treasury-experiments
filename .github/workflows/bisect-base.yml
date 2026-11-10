@@ -1,0 +1,25 @@
+# Reusable security and lint checks (secret scan, zizmor, REUSE, markdownlint)
+# provided by clouatre-labs/.github; see clouatre-labs/.github#86.
+name: Security & Lint
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  bisect-base:
+    name: Security Result
+    permissions:
+      contents: read
+    uses: clouatre-labs/.github/.github/workflows/security-lint.yml@63aaff705d670fd4ba58af006a6ec474562015b0
+    with:
+      label: ubuntu-26.04-arm
+      secret-scan: false
+      zizmor: false
+      reuse: false
