@@ -14,4 +14,4 @@ permissions:
 
 jobs:
   watchdog:
-    uses: clouatre-labs/.github/.github/workflows/runner-watchdog.yml@PLACEHOLDER_CENTRAL_SHA
+    uses: clouatre-labs/.github/.github/workflows/runner-watchdog.yml@58448fb7952bc4e5cebc46cf8656879446b308ae
