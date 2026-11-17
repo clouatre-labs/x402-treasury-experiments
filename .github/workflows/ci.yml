@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/**"
       - ".commitlintrc.yml"
+      - "renovate.json"
       - ".zenodo.json"
       - "CITATION.cff"
       - "CONTRIBUTING.md"
