@@ -179,16 +179,6 @@ Also intentionally absent: the frozen recipe's fee-decomposition figure (every c
 
 ## Citing This Work
 
-See [CITATION.cff](CITATION.cff) or:
-
-```bibtex
-@dataset{clouatre2026x402treasury,
-  title  = {x402 Treasury Experiments},
-  author = {Clouâtre, Hugues},
-  year   = {2026},
-  doi    = {10.5281/zenodo.23927458},
-  note   = {All versions. Latest version DOI: \url{https://doi.org/10.5281/zenodo.23966655}}
-}
-```
+If you cite this work, see [CITATION.cff](CITATION.cff) or:
 
 Dataset archived at Zenodo (concept DOI): [10.5281/zenodo.23927458](https://doi.org/10.5281/zenodo.23927458); latest version: [10.5281/zenodo.23966655](https://doi.org/10.5281/zenodo.23966655). Companion posts: [Pay-per-call margins and the treasury](https://clouatre.ca/posts/pay-per-call-margins-treasury/) and [Agent payments and the x402 treasury](https://clouatre.ca/posts/agent-payments-x402/).
