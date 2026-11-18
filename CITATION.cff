@@ -18,6 +18,7 @@ identifiers:
     value: 10.5281/zenodo.23966655
     description: Zenodo dataset DOI (v2.0.0)
 repository-code: https://github.com/clouatre-labs/x402-treasury-experiments
+url: https://clouatre.ca/posts/pay-per-call-margins-treasury/
 license: Apache-2.0
 date-released: "2026-11-04"
 version: "2.0.0"
