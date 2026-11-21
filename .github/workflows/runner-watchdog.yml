@@ -14,4 +14,4 @@ permissions:
 
 jobs:
   watchdog:
-    uses: clouatre-labs/.github/.github/workflows/runner-watchdog.yml@58448fb7952bc4e5cebc46cf8656879446b308ae
+    uses: clouatre-labs/.github/.github/workflows/runner-watchdog.yml@9b42cd352620915a6d484806db9ef1b589d65367
