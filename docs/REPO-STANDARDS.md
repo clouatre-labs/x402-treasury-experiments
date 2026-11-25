@@ -21,10 +21,8 @@ The table below covers all committed configuration artifacts. Issue templates, P
 | `.github/workflows/scheduled-security-audit.yml` | Weekly scheduled zizmor security audit | repo |
 | `scripts/bootstrap.sh` | Creates the Conventional Commits vocabulary labels (commitlint types plus issue-template labels); supports `--apply` to create the repo branch ruleset directly. Labels are also managed org-wide by `clouatre-labs/.github` (`apply-org-settings.sh`, add/update-only); outside the org, bootstrap.sh is the label source of truth | repo |
 | `.commitlintrc.yml` | Conventional Commits ruleset for commitlint | repo |
-| `.github/workflows/scorecard.yml` | Weekly OpenSSF Scorecard analysis; skipped on private repos (`visibility == 'public'` gate), publishes SARIF to code scanning on public ones | repo |
 | `.github/zizmor.yml` | zizmor suppression config for intentional patterns (e.g. `github.actor` gates); owned by security-reviewers via CODEOWNERS | repo |
 | `.github/aptu.yml` | aptu GitHub App configuration: automatic issue triage on new issues | repo |
-| `.github/scorecard-policy.yml` | Scorecard policy for SARIF output, mirroring the default bundled in ossf/scorecard-action | repo |
 | `.github/workflows/aptu-review.yml` | Automated AI-assisted PR review via the aptu GitHub App | repo |
 | `.github/workflows/aptu-scan-security.yml` | Automated security scan of new issues/PRs via the aptu GitHub App | repo |
 | `.github/workflows/aptu-triage.yml` | Automated issue triage workflow via the aptu GitHub App | repo |
@@ -153,7 +151,7 @@ jobs:
 
 These steps replicate all controls to any new engagement repo under `github.com/clouatre-labs`. Complete them in order; later steps depend on earlier ones being in effect.
 
-1. Copy `.github/CODEOWNERS`, `.github/renovate.json`, `.github/workflows/security.yml`, `.github/workflows/scheduled-security-audit.yml`, and `.github/workflows/scorecard.yml` into the new repo. Add any additional third-party action patterns the new repo uses to the allowlist in step 4.
+1. Copy `.github/CODEOWNERS`, `.github/renovate.json`, `.github/workflows/security.yml`, `.github/workflows/scheduled-security-audit.yml` into the new repo. Add any additional third-party action patterns the new repo uses to the allowlist in step 4.
 
 2. Update CODEOWNERS teams if the derived repo uses different owners. **Critical:** Ensure the teams or accounts have at least `Write` access to the derived repo. GitHub silently ignores code owners that lack write access, which would leave the repo unprotected. Update the absolute contact URLs in `.github/ISSUE_TEMPLATE/config.yml` to point to the derived repo. See `.github/CODEOWNERS` for the full pattern.
 
@@ -196,7 +194,6 @@ These steps replicate all controls to any new engagement repo under `github.com/
      --field 'patterns_allowed[]=DavidAnson/markdownlint-cli2-action@*' \
      --field 'patterns_allowed[]=trufflesecurity/trufflehog@*' \
      --field 'patterns_allowed[]=zizmorcore/zizmor-action@*' \
-     --field 'patterns_allowed[]=ossf/scorecard-action@*'
    ```
 
    *Code Snippet 7: Set the selected-actions allowlist. Add entries for any additional third-party actions the new repo uses.*
